@@ -21783,7 +21783,7 @@
 	(footprint "LibEigen:SMD Test Point PCWCTE"
 		(layer "B.Cu")
 		(uuid "88710d6b-e25e-47e1-a2cf-af306bc0b7ec")
-		(at 97.6 84.1 90)
+		(at 102.625 82.575 90)
 		(property "Reference" "TP602"
 			(at 0 1.9 270)
 			(unlocked yes)
@@ -34328,7 +34328,7 @@
 	(footprint "LibEigen:SMD Test Point PCWCTE"
 		(layer "B.Cu")
 		(uuid "d0b53259-75af-4686-a72e-089922fa632d")
-		(at 92.6 57.5 -90)
+		(at 103.225 68.175 -90)
 		(property "Reference" "TP504"
 			(at 0 1.9 90)
 			(unlocked yes)
