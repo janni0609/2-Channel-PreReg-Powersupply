@@ -269,6 +269,26 @@
 			(embedded_fonts no)
 		)
 	)
+	(wire
+		(pts
+			(xy 138.43 49.53) (xy 175.26 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "93941905-9d5d-45b0-9612-38eb541fb931")
+	)
+	(wire
+		(pts
+			(xy 138.43 46.99) (xy 175.26 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "dd866e75-b2ed-4273-8295-8b14c55b03cd")
+	)
 	(symbol
 		(lib_id "Mechanical:MountingHole_Pad")
 		(at 33.02 189.23 0)
@@ -739,8 +759,8 @@
 		)
 	)
 	(sheet
-		(at 152.4 31.75)
-		(size 59.69 31.75)
+		(at 175.26 38.1)
+		(size 53.34 22.86)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
@@ -755,7 +775,7 @@
 		)
 		(uuid "19bfe284-0b9b-4876-b680-4ee0d6ee0ed7")
 		(property "Sheetname" "Ch1Power"
-			(at 152.4 31.0384 0)
+			(at 175.26 37.3884 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -766,7 +786,7 @@
 			)
 		)
 		(property "Sheetfile" "Ch1Power.kicad_sch"
-			(at 152.4 64.0846 0)
+			(at 175.26 61.5446 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -774,6 +794,26 @@
 					(size 1.27 1.27)
 				)
 				(justify left top)
+			)
+		)
+		(pin "Rx_Ctr" output
+			(at 175.26 46.99 180)
+			(uuid "ea291f44-a1f4-4af2-9bd3-ed37dcbdaae4")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "Tx_Ctr" input
+			(at 175.26 49.53 180)
+			(uuid "886e69ac-3db3-40b8-bb71-739beed447ab")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 			)
 		)
 		(instances
@@ -785,8 +825,8 @@
 		)
 	)
 	(sheet
-		(at 35.56 38.1)
-		(size 38.1 16.51)
+		(at 100.33 38.1)
+		(size 38.1 55.88)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
@@ -801,7 +841,7 @@
 		)
 		(uuid "d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4")
 		(property "Sheetname" "Control"
-			(at 35.56 37.3884 0)
+			(at 100.33 37.3884 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -812,7 +852,7 @@
 			)
 		)
 		(property "Sheetfile" "Control.kicad_sch"
-			(at 35.56 55.1946 0)
+			(at 100.33 94.5646 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -823,13 +863,53 @@
 			)
 		)
 		(property "Field2" ""
-			(at 35.56 38.1 0)
+			(at 100.33 38.1 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+			)
+		)
+		(pin "Rx_Ch1" input
+			(at 138.43 46.99 0)
+			(uuid "90b4133a-65ca-43bd-b7d5-95c016e91360")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "Rx_Ch2" input
+			(at 138.43 66.04 0)
+			(uuid "d8b3a98e-6485-4da3-b218-1cb64e6a9089")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "Tx_Ch1" output
+			(at 138.43 49.53 0)
+			(uuid "26e77050-e641-45a3-b8a8-2bd71376e66d")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "Tx_Ch2" output
+			(at 138.43 68.58 0)
+			(uuid "dfed4bd3-b06d-46c5-a690-8f24013ca090")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 			)
 		)
 		(instances

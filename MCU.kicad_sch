@@ -2521,6 +2521,132 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "power:GNDD"
+			(power global)
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "#PWR"
+				(at 0 -6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "GNDD"
+				(at 0 -3.175 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Power symbol creates a global label with name \"GNDD\" , digital ground"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "global power"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "GNDD_0_1"
+				(rectangle
+					(start -1.27 -1.524)
+					(end 1.27 -2.032)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 0) (xy 0 -1.524)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "GNDD_1_1"
+				(pin power_in line
+					(at 0 0 270)
+					(length 0)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 	)
 	(junction
 		(at 107.95 167.64)
@@ -2674,6 +2800,16 @@
 	)
 	(wire
 		(pts
+			(xy 57.15 82.55) (xy 57.15 80.01)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6cd3ed5c-13d8-4c3f-830b-f76d0efe76b8")
+	)
+	(wire
+		(pts
 			(xy 85.09 85.09) (xy 80.01 85.09)
 		)
 		(stroke
@@ -2771,6 +2907,16 @@
 			(type default)
 		)
 		(uuid "9d34eacd-c0fb-41fc-abec-644ff8cc13fd")
+	)
+	(wire
+		(pts
+			(xy 59.69 82.55) (xy 57.15 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9daeff61-0fec-4059-a70b-de27a6a03245")
 	)
 	(wire
 		(pts
@@ -2894,6 +3040,26 @@
 	)
 	(wire
 		(pts
+			(xy 57.15 90.17) (xy 59.69 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ecf8de3e-66d3-42f2-aaa4-e62e07ad84da")
+	)
+	(wire
+		(pts
+			(xy 57.15 92.71) (xy 57.15 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ee3cc855-2c85-4ef0-b73e-5a97b5465797")
+	)
+	(wire
+		(pts
 			(xy 220.98 137.16) (xy 220.98 135.89)
 		)
 		(stroke
@@ -3013,6 +3179,17 @@
 		)
 		(uuid "0e2b3c75-10e5-4a59-8db4-881b136d7d48")
 	)
+	(hierarchical_label "Rx_Ctr"
+		(shape output)
+		(at 59.69 87.63 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "50cd6fbc-22ee-4a82-bdb8-0617eecf2b03")
+	)
 	(hierarchical_label "CC{slash}~{CV}"
 		(shape input)
 		(at 200.66 142.24 180)
@@ -3034,6 +3211,17 @@
 			(justify left)
 		)
 		(uuid "8fccf50b-bce5-431f-bdeb-0561d728f125")
+	)
+	(hierarchical_label "Tx_Ctr"
+		(shape input)
+		(at 59.69 85.09 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "91361da6-6a53-4827-85a1-40a868d1cc44")
 	)
 	(hierarchical_label "SPI_MOSI"
 		(shape output)
@@ -3245,6 +3433,88 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
 					(reference "#PWR0808")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 54.61 115.57 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "2703c58f-08f8-4792-82f8-7755879670dc")
+		(property "Reference" "C805"
+			(at 58.42 114.2999 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100n"
+			(at 58.42 116.8399 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+			(at 55.5752 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 54.61 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 54.61 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f4a87894-2d11-471a-91a7-9267d1c6fb07")
+		)
+		(pin "2"
+			(uuid "04987070-a833-4a16-9848-334ef1dda568")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
+					(reference "C805")
 					(unit 1)
 				)
 			)
@@ -4162,6 +4432,84 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GNDD")
+		(at 54.61 119.38 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "4a426c67-4876-42f6-b940-e57c8875f887")
+		(property "Reference" "#PWR0823"
+			(at 54.61 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GNDD"
+			(at 54.61 123.19 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 54.61 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 54.61 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GNDD\" , digital ground"
+			(at 54.61 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ee1e0e6a-66d2-4ad2-bbd0-31890d7476d0")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
+					(reference "#PWR0823")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Connector:Conn_01x03_Pin")
 		(at 190.5 81.28 0)
 		(mirror y)
@@ -4483,6 +4831,84 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
 					(reference "C804")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GNDD")
+		(at 57.15 92.71 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "6dab68cc-b490-43c1-9575-c183291571c9")
+		(property "Reference" "#PWR0822"
+			(at 57.15 99.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GNDD"
+			(at 57.15 96.52 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 57.15 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 57.15 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GNDD\" , digital ground"
+			(at 57.15 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "8162bbbc-6f08-45e3-9f79-c6690d039044")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
+					(reference "#PWR0822")
 					(unit 1)
 				)
 			)
@@ -4972,6 +5398,84 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
 					(reference "R804")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 57.15 80.01 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "99992f2a-a003-497c-98f6-7877e7319616")
+		(property "Reference" "#PWR0821"
+			(at 57.15 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 57.15 74.93 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 57.15 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 57.15 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 57.15 80.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "eb214b8d-187d-4b36-a6ae-ece6ca1aba44")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
+					(reference "#PWR0821")
 					(unit 1)
 				)
 			)
@@ -5812,6 +6316,84 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
 					(reference "#PWR0813")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 54.61 111.76 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e50fff96-faae-4f2c-b11c-90830f29bfef")
+		(property "Reference" "#PWR0824"
+			(at 54.61 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 54.61 106.68 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 54.61 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 54.61 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 54.61 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "aa58fe54-3cf3-460b-bfdf-9daa57f2bc68")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/20f98440-7273-4082-a9e9-7fd5a9a3681b"
+					(reference "#PWR0824")
 					(unit 1)
 				)
 			)
