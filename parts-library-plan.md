@@ -1,9 +1,10 @@
 # Electronic Component Parts Library — Project Plan
 
-Personal inventory system for tracking electronic components (article numbers,
-descriptions, stock quantities, prices, datasheets), with a web UI for
-browsing/searching and a photo-based "add part" workflow powered by the Claude
-API. Intended to run on an always-on Raspberry Pi 5.
+Simple personal inventory system for tracking electronic components (article
+numbers, descriptions, stock quantities, prices, datasheets), with a web UI
+for browsing/searching. Designed for a small collection (up to ~1000 parts),
+so it stays deliberately lightweight. Intended to run on an always-on
+Raspberry Pi 5.
 
 > Note: This is a separate project from the power supply hardware in this
 > repo. It's tracked here as a planning document until it gets its own
@@ -15,22 +16,22 @@ API. Intended to run on an always-on Raspberry Pi 5.
   stock, purchase price (if known), datasheet link (if available)
 - Web UI to browse, search, filter, and group parts by category
 - Inline editing of stock quantity directly in the web viewer
-- Add new parts by taking a photo (e.g. of a component, label, or datasheet)
-  and have structured data extracted automatically via the Claude API
+- Add new parts by taking a photo with the Claude app (Pro subscription, no
+  extra API costs) and having Claude fill in a standard CSV template, which
+  is then imported into the library via the web UI
 
 ## Architecture
 
 - **Backend**: FastAPI (Python) + SQLite — simple CRUD API, easy to back up
-  (single file database)
-- **Frontend**: React + Vite SPA served by the backend, or as a simple PWA so
-  it can be added to a phone home screen for quick photo capture
+  (single file database). At ~1000 rows max, SQLite needs no tuning at all.
+- **Frontend**: A simple server-rendered or lightweight SPA page, served by
+  the backend — table view with search/filter/group and inline quantity edit
 - **Hosting**: Runs as a systemd service on the Raspberry Pi 5, reverse-proxied
-  via Caddy (gives HTTPS automatically, useful for camera access on mobile
-  browsers which require a secure context)
-- **Photo extraction**: Backend endpoint that sends the uploaded image to the
-  Anthropic API (vision input) with a prompt asking for structured JSON
-  (article number, description, category guess, value/specs, datasheet URL if
-  visible), then pre-fills an "add part" form for the user to review/confirm
+  via Caddy (gives HTTPS automatically, useful if accessed from a phone)
+- **Photo-based import**: No Anthropic API key needed. The user photographs a
+  part in the Claude app (Pro subscription) and asks Claude to extract the
+  data into a row matching a fixed CSV template (see below). The resulting
+  CSV is then uploaded/imported via the web UI.
 
 ## Data Model (draft)
 
@@ -65,23 +66,26 @@ API. Intended to run on an always-on Raspberry Pi 5.
 - Form to add/edit a part manually, including price and datasheet link
 - Category management (free text or a managed list)
 
-### Phase 4 — Photo-based part entry (Claude API)
-- Mobile-friendly capture page (PWA) that uploads a photo
-- Backend sends image to Claude API (vision) with an extraction prompt,
-  returns structured JSON (article number, description, value/specs, possible
-  category, datasheet link if visible on packaging)
-- Pre-filled "review & confirm" form before saving to the database
+### Phase 4 — Import parts via CSV (extracted using the Claude app)
+- Define a fixed CSV template with one column per data field:
+  `article_number, description, category, quantity, purchase_price, currency,
+  datasheet_url, notes`
+- Workflow: take a photo of the part/label/datasheet in the Claude app (Pro
+  subscription), ask Claude to fill in a row using this exact template, copy
+  the result into a CSV file (one row per part, can batch multiple parts in
+  one file)
+- Web UI gets an "Import CSV" page:
+  - Parses the uploaded file
+  - Matches existing parts by `article_number` (updates quantity/fields if
+    found, otherwise inserts a new part)
+  - Shows a preview/diff before committing
+- A blank template file (with header row + one example row) is provided in
+  the repo so it's easy to reference/share with Claude when asking for the
+  extraction
 
-**Anthropic API setup & cost notes:**
-- Requires a separate Anthropic **Developer Console** account
-  (console.anthropic.com) and its own API key — this is billed separately
-  (pay-as-you-go per token) and is **not** included in a Claude.ai Pro/Max
-  subscription
-- Recommended model: **Claude Haiku 4.5** (`claude-haiku-4-5`) — cheap and
-  sufficient for reading part markings/labels
-- A photo (~1,200–1,600 tokens) + short prompt + small JSON response works out
-  to roughly **$0.002 per image** on Haiku 4.5 (~$2 for 1,000 parts added by
-  photo) — negligible for this use case
+This avoids any Anthropic API key or per-token billing entirely — all
+extraction happens conversationally in the Claude app under the existing Pro
+subscription.
 
 ### Phase 5 — Raspberry Pi deployment
 - systemd service for the FastAPI app
@@ -97,7 +101,5 @@ API. Intended to run on an always-on Raspberry Pi 5.
 
 - New repo vs. subfolder for this project
 - Remote access preference (Tailscale vs. local network only, for now)
-- Rough scale of inventory (tens vs. hundreds vs. thousands of parts) — mainly
-  affects how much UI polish for search/filter is worth building up front
-- Whether to set up the Anthropic API key now (for Phase 4) or defer until
-  Phases 1–3 are working
+- Exact CSV column set/order for the import template — current draft above,
+  open to tweaks once Phase 1 schema is in place
