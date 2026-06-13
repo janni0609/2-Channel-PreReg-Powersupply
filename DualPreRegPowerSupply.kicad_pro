@@ -495,10 +495,10 @@
       "net_not_bus_member": "warning",
       "no_connect_connected": "warning",
       "no_connect_dangling": "warning",
-      "pin_not_connected": "error",
-      "pin_not_driven": "error",
-      "pin_to_pin": "warning",
-      "power_pin_not_driven": "error",
+      "pin_not_connected": "warning",
+      "pin_not_driven": "warning",
+      "pin_to_pin": "error",
+      "power_pin_not_driven": "warning",
       "same_local_global_label": "warning",
       "similar_label_and_power": "warning",
       "similar_labels": "warning",
@@ -691,7 +691,7 @@
         "uuid": "6e74608c-23b9-4b98-8fc4-fa8fd655ae50"
       }
     ],
-    "used_designators": "R321,R403-404,Q301,Q304-305,C309,C404,C805,#PWR320-321,#PWR415-420,#PWR821-824,U401",
+    "used_designators": "U101-111,U1401-1402,C101-147,C405,C1012-1013,C1201-1202,#PWR101-113,#PWR201-202,L101-102,L401,D101-107,D401,H401-402,J101-103,J402-403,TP101-112,TP401-403,F101-102,FL101,Q101-107,R101-142,R201-202,TH101",
     "variants": []
   },
   "sheets": [
@@ -700,40 +700,68 @@
       "DualPreRegPowerSupply"
     ],
     [
-      "19bfe284-0b9b-4876-b680-4ee0d6ee0ed7",
-      "Ch1Power"
-    ],
-    [
-      "f35a5384-6f7b-4a9d-a7fe-0a11cd4efe3d",
-      "Linear_PostReg"
-    ],
-    [
       "d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4",
       "Control"
-    ],
-    [
-      "5421e415-5d68-4eaa-8c24-bcc4d6156d8b",
-      "DCDCTracking"
-    ],
-    [
-      "050244e6-1444-4a96-99d3-9213495a2268",
-      "Input"
-    ],
-    [
-      "1a990e4c-7950-4fbe-9b2e-533f3df9e505",
-      "DAC_ADC"
-    ],
-    [
-      "20f98440-7273-4082-a9e9-7fd5a9a3681b",
-      "MCU"
     ],
     [
       "73dd4ba3-d26e-4586-a8b1-e2043852c815",
       "Digi_Power"
     ],
     [
+      "19bfe284-0b9b-4876-b680-4ee0d6ee0ed7",
+      "Ch1Power"
+    ],
+    [
+      "050244e6-1444-4a96-99d3-9213495a2268",
+      "Input"
+    ],
+    [
       "1e97c929-9584-4135-ba9a-4ad49b795d46",
       "Power"
+    ],
+    [
+      "20f98440-7273-4082-a9e9-7fd5a9a3681b",
+      "MCU"
+    ],
+    [
+      "1a990e4c-7950-4fbe-9b2e-533f3df9e505",
+      "DAC_ADC"
+    ],
+    [
+      "5421e415-5d68-4eaa-8c24-bcc4d6156d8b",
+      "DCDCTracking"
+    ],
+    [
+      "f35a5384-6f7b-4a9d-a7fe-0a11cd4efe3d",
+      "Linear_PostReg"
+    ],
+    [
+      "343e6ab8-61bf-4409-bd59-a9fdebf952af",
+      "Ch1Power1"
+    ],
+    [
+      "f35a5384-6f7b-4a9d-a7fe-0a11cd4efe3d",
+      "Linear_PostReg"
+    ],
+    [
+      "1a990e4c-7950-4fbe-9b2e-533f3df9e505",
+      "DAC_ADC"
+    ],
+    [
+      "5421e415-5d68-4eaa-8c24-bcc4d6156d8b",
+      "DCDCTracking"
+    ],
+    [
+      "1e97c929-9584-4135-ba9a-4ad49b795d46",
+      "Power"
+    ],
+    [
+      "20f98440-7273-4082-a9e9-7fd5a9a3681b",
+      "MCU"
+    ],
+    [
+      "050244e6-1444-4a96-99d3-9213495a2268",
+      "Input"
     ]
   ],
   "text_variables": {},
