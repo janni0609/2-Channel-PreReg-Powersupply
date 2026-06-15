@@ -1217,34 +1217,36 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Regulator_Switching:AP63200WU"
+		(symbol "eiene Symbole:LMR51606"
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U1001"
-				(at 0 10.16 0)
+			(property "Reference" "U"
+				(at -7.62 6.35 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
+					(justify left)
 				)
 			)
-			(property "Value" "AP64060QWU"
-				(at 0 7.62 0)
+			(property "Value" "LMR51606"
+				(at 0 6.35 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
+					(justify left)
 				)
 			)
-			(property "Footprint" "Package_TO_SOT_SMD:TSOT-23-6"
-				(at 0 -22.86 0)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6"
+				(at 1.27 -8.89 0)
 				(show_name no)
 				(do_not_autoplace no)
 				(hide yes)
@@ -1252,9 +1254,22 @@
 					(font
 						(size 1.27 1.27)
 					)
+					(justify left)
 				)
 			)
-			(property "Datasheet" "https://www.diodes.com/datasheet/download/AP64060Q_AP64060TQ_AP64060ZQ.pdf"
+			(property "Datasheet" "https://www.ti.com/lit/ds/symlink/lmr51606.pdf?ts=1704242784728&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FLMR51606"
+				(at 1.27 -11.43 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Description" "4.5-V to 36-V, 3-A synchronous buck converter with 40-µA IQ, SOT-23-6"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1265,7 +1280,7 @@
 					)
 				)
 			)
-			(property "Description" "2A, 500kHz Buck DC/DC Converter, adjustable output voltage, TSOT-23-6"
+			(property "ki_keywords" "switching buck converter power-supply voltage regulator"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1276,7 +1291,7 @@
 					)
 				)
 			)
-			(property "ki_keywords" "2A Buck DC/DC"
+			(property "ki_fp_filters" "SOT?23*"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1287,18 +1302,7 @@
 					)
 				)
 			)
-			(property "ki_fp_filters" "TSOT?23*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "AP63200WU_0_1"
+			(symbol "LMR51606_0_1"
 				(rectangle
 					(start -7.62 5.08)
 					(end 7.62 -5.08)
@@ -1311,11 +1315,11 @@
 					)
 				)
 			)
-			(symbol "AP63200WU_1_1"
+			(symbol "LMR51606_1_1"
 				(pin passive line
-					(at 10.16 0 180)
+					(at 10.16 2.54 180)
 					(length 2.54)
-					(name "BST"
+					(name "CB"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1387,7 +1391,7 @@
 				(pin power_in line
 					(at -10.16 2.54 0)
 					(length 2.54)
-					(name "IN"
+					(name "VIN"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1402,8 +1406,8 @@
 						)
 					)
 				)
-				(pin output line
-					(at 10.16 2.54 180)
+				(pin power_out line
+					(at 10.16 0 180)
 					(length 2.54)
 					(name "SW"
 						(effects
@@ -1424,7 +1428,7 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "5V"
+	(text "4,5V"
 		(exclude_from_sim no)
 		(at 139.7 22.86 0)
 		(effects
@@ -1444,37 +1448,11 @@
 		)
 		(uuid "d94965c2-eb5e-4457-a70c-cbb601e46a46")
 	)
-	(text_box "L ideal = 11,9 uH\nI_L_peak = 0,6mA"
-		(exclude_from_sim no)
-		(at 109.22 46.99 0)
-		(size 24.13 6.35)
-		(margins 0.9525 0.9525 0.9525 0.9525)
-		(stroke
-			(width 0)
-			(type solid)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left top)
-		)
-		(uuid "134a5b2b-548e-44e7-8865-9583a5300a24")
-	)
 	(junction
 		(at 171.45 44.45)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "03645f96-3fc5-4988-9a4e-f646fb39a797")
-	)
-	(junction
-		(at 106.68 24.13)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "08666d99-6616-4970-bf37-4d15fe4ec182")
 	)
 	(junction
 		(at 185.42 24.13)
@@ -1493,12 +1471,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "1fa211c6-a690-436c-8490-cb7c0826b698")
-	)
-	(junction
-		(at 119.38 34.29)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "2741c860-eabf-49dc-a13c-f0517290422f")
 	)
 	(junction
 		(at 144.78 24.13)
@@ -1529,12 +1501,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "5a5ccdba-c156-4cec-8d34-c09a6bdede1d")
-	)
-	(junction
-		(at 119.38 24.13)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "62ecbd23-09ae-4f5f-9342-9292b24bde34")
 	)
 	(junction
 		(at 198.12 24.13)
@@ -1577,6 +1543,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "a68ef673-ebe0-4270-991c-68a69c817b6d")
+	)
+	(junction
+		(at 106.68 24.13)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "acc65b02-e92b-4cd5-8f08-d2e04b17180c")
 	)
 	(junction
 		(at 185.42 44.45)
@@ -1664,16 +1636,6 @@
 	)
 	(wire
 		(pts
-			(xy 96.52 24.13) (xy 106.68 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0cbb2b46-f138-4d2c-b96d-7de7cc3feff1")
-	)
-	(wire
-		(pts
 			(xy 198.12 25.4) (xy 198.12 24.13)
 		)
 		(stroke
@@ -1714,7 +1676,7 @@
 	)
 	(wire
 		(pts
-			(xy 96.52 26.67) (xy 97.79 26.67)
+			(xy 96.52 24.13) (xy 97.79 24.13)
 		)
 		(stroke
 			(width 0)
@@ -1834,6 +1796,16 @@
 	)
 	(wire
 		(pts
+			(xy 106.68 24.13) (xy 109.22 24.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3c338dbf-9031-4e1b-9c95-d90397227629")
+	)
+	(wire
+		(pts
 			(xy 144.78 44.45) (xy 156.21 44.45)
 		)
 		(stroke
@@ -1841,6 +1813,16 @@
 			(type default)
 		)
 		(uuid "44c16228-e0a3-451d-96c3-e7a405d486d2")
+	)
+	(wire
+		(pts
+			(xy 106.68 26.67) (xy 106.68 24.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "45624476-2f31-4c62-8ed4-7a682c5f0220")
 	)
 	(wire
 		(pts
@@ -1874,7 +1856,7 @@
 	)
 	(wire
 		(pts
-			(xy 119.38 34.29) (xy 130.81 34.29)
+			(xy 97.79 34.29) (xy 130.81 34.29)
 		)
 		(stroke
 			(width 0)
@@ -2004,16 +1986,6 @@
 	)
 	(wire
 		(pts
-			(xy 106.68 26.67) (xy 106.68 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "837d8454-4193-4b5f-b541-554f2478ee3a")
-	)
-	(wire
-		(pts
 			(xy 48.26 24.13) (xy 59.69 24.13)
 		)
 		(stroke
@@ -2034,6 +2006,16 @@
 	)
 	(wire
 		(pts
+			(xy 96.52 26.67) (xy 106.68 26.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "87e66ee1-a4d2-4aa2-bf18-cceaed7564c1")
+	)
+	(wire
+		(pts
 			(xy 168.91 80.01) (xy 168.91 82.55)
 		)
 		(stroke
@@ -2044,17 +2026,7 @@
 	)
 	(wire
 		(pts
-			(xy 119.38 24.13) (xy 119.38 25.4)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8f5c2c72-bba3-4995-afc6-81b11517f25f")
-	)
-	(wire
-		(pts
-			(xy 105.41 26.67) (xy 106.68 26.67)
+			(xy 105.41 24.13) (xy 106.68 24.13)
 		)
 		(stroke
 			(width 0)
@@ -2111,16 +2083,6 @@
 			(type default)
 		)
 		(uuid "9c5396b3-ef93-4a33-b027-a7c994353cfe")
-	)
-	(wire
-		(pts
-			(xy 97.79 34.29) (xy 119.38 34.29)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9cb8e88f-4aa1-42cb-8043-ba9a1e45b5d6")
 	)
 	(wire
 		(pts
@@ -2211,16 +2173,6 @@
 			(type default)
 		)
 		(uuid "b79ab516-ef77-4e0e-a1df-958bcf837756")
-	)
-	(wire
-		(pts
-			(xy 119.38 24.13) (xy 116.84 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b81824d7-9d34-429b-aac9-e993b1e753f8")
 	)
 	(wire
 		(pts
@@ -2394,16 +2346,6 @@
 	)
 	(wire
 		(pts
-			(xy 119.38 33.02) (xy 119.38 34.29)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f0d8e7b2-16e9-4dec-9763-bc5400efee1d")
-	)
-	(wire
-		(pts
 			(xy 261.62 95.25) (xy 261.62 88.9)
 		)
 		(stroke
@@ -2434,17 +2376,7 @@
 	)
 	(wire
 		(pts
-			(xy 106.68 24.13) (xy 109.22 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fb7d6237-f545-4447-977a-60477483f347")
-	)
-	(wire
-		(pts
-			(xy 119.38 24.13) (xy 130.81 24.13)
+			(xy 116.84 24.13) (xy 130.81 24.13)
 		)
 		(stroke
 			(width 0)
@@ -2663,92 +2595,6 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 119.38 29.21 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp yes)
-		(fields_autoplaced yes)
-		(uuid "1489ec35-8983-48f8-b2bb-5101fe473420")
-		(property "Reference" "C1004"
-			(at 123.19 27.9399 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "56p"
-			(at 123.19 30.4799 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 120.3452 33.02 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 119.38 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unpolarized capacitor"
-			(at 119.38 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "83a446a7-1844-4bc3-be1e-1eabb7f2949b")
-		)
-		(pin "2"
-			(uuid "498798fe-562e-4576-b864-188e2e8188ea")
-		)
-		(instances
-			(project "DualPreRegPowerSupply"
-				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/1e97c929-9584-4135-ba9a-4ad49b795d46"
-					(reference "C1004")
-					(unit 1)
-				)
-				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/1e97c929-9584-4135-ba9a-4ad49b795d46"
-					(reference "C116")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:C")
 		(at 144.78 34.29 0)
 		(unit 1)
 		(body_style 1)
@@ -2918,6 +2764,104 @@
 		)
 	)
 	(symbol
+		(lib_id "eiene Symbole:LMR51606")
+		(at 86.36 26.67 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "4f84ab14-edb8-43e4-bc06-83422ba2a8fd")
+		(property "Reference" "U601"
+			(at 86.36 16.51 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "LMR51606"
+			(at 86.36 19.05 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6"
+			(at 87.63 35.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/lmr51606.pdf?ts=1704242784728&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FLMR51606"
+			(at 87.63 38.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Description" "4.5-V to 36-V, 3-A synchronous buck converter with 40-µA IQ, SOT-23-6"
+			(at 86.36 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "4"
+			(uuid "43bccc65-7f39-4a29-b995-6119bec30c1e")
+		)
+		(pin "2"
+			(uuid "d5582a34-e42a-480a-8b3f-486b6bcdb872")
+		)
+		(pin "3"
+			(uuid "464749b3-9b0a-4cf2-ba4b-826a90ee37d3")
+		)
+		(pin "5"
+			(uuid "b7a82469-1073-4bd8-8912-b03dee4cbe47")
+		)
+		(pin "1"
+			(uuid "4f7e674c-b7e7-4e8e-85f1-3f771f8cd095")
+		)
+		(pin "6"
+			(uuid "4c7e03ae-bda2-49ba-9fba-24d86045ffdb")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/1e97c929-9584-4135-ba9a-4ad49b795d46"
+					(reference "U601")
+					(unit 1)
+				)
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/1e97c929-9584-4135-ba9a-4ad49b795d46"
+					(reference "U1501")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:L")
 		(at 113.03 24.13 90)
 		(unit 1)
@@ -2938,7 +2882,7 @@
 				)
 			)
 		)
-		(property "Value" "10u CBC3225T100KR"
+		(property "Value" "33u VLS6045EX-330M"
 			(at 119.38 21.59 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2948,7 +2892,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Inductor_SMD:L_1210_3225Metric"
+		(property "Footprint" "Inductor_SMD:L_TDK_VLS6045EX_VLS6045AF"
 			(at 113.03 24.13 0)
 			(hide yes)
 			(show_name no)
@@ -3205,7 +3149,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "22,1k"
+		(property "Value" "16,2k"
 			(at 133.35 40.6399 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4056,102 +4000,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Regulator_Switching:AP63200WU")
-		(at 86.36 26.67 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "dc0fc1ef-9ed2-490a-a5bc-7ddeca0d281c")
-		(property "Reference" "U1001"
-			(at 86.36 16.51 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "AP64060QWU"
-			(at 86.36 19.05 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_SMD:TSOT-23-6"
-			(at 86.36 49.53 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.diodes.com/datasheet/download/AP64060Q_AP64060TQ_AP64060ZQ.pdf"
-			(at 86.36 26.67 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "2A, 500kHz Buck DC/DC Converter, adjustable output voltage, TSOT-23-6"
-			(at 86.36 26.67 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "6"
-			(uuid "0bf51706-7790-4c5c-bccb-4d6bcf69e514")
-		)
-		(pin "1"
-			(uuid "eb83b757-4f4b-4b27-b4e0-ed7f06f9add1")
-		)
-		(pin "4"
-			(uuid "3b61bba5-5bbb-4fd6-9b3b-7428e084a025")
-		)
-		(pin "5"
-			(uuid "f7c5807f-4654-47ff-b30e-af2cdd487897")
-		)
-		(pin "2"
-			(uuid "010d41e1-e602-4440-89b1-60622694810e")
-		)
-		(pin "3"
-			(uuid "f1629bf5-23cf-4574-ad55-a2c9d4919634")
-		)
-		(instances
-			(project "DualPreRegPowerSupply"
-				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/1e97c929-9584-4135-ba9a-4ad49b795d46"
-					(reference "U1001")
-					(unit 1)
-				)
-				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/1e97c929-9584-4135-ba9a-4ad49b795d46"
-					(reference "U103")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 130.81 29.21 0)
 		(unit 1)
@@ -4174,7 +4022,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "115k"
+		(property "Value" "75k"
 			(at 133.35 30.4799 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4239,7 +4087,7 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 101.6 26.67 90)
+		(at 101.6 24.13 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4249,7 +4097,7 @@
 		(dnp no)
 		(uuid "ec45ac15-a4bf-4ff3-bd7e-fe090f1557bc")
 		(property "Reference" "C1003"
-			(at 101.6 20.32 90)
+			(at 101.6 17.78 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4259,7 +4107,7 @@
 			)
 		)
 		(property "Value" "100n"
-			(at 101.6 22.86 90)
+			(at 101.6 20.32 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4269,7 +4117,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 105.41 25.7048 0)
+			(at 105.41 23.1648 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4280,7 +4128,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 101.6 26.67 0)
+			(at 101.6 24.13 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4291,7 +4139,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 101.6 26.67 0)
+			(at 101.6 24.13 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
