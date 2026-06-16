@@ -940,12 +940,6 @@
 		(uuid "c758ae7b-d735-4540-915e-f99f6f63d81d")
 	)
 	(junction
-		(at 76.2 104.14)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "cbad921e-9258-4620-9f6d-b196f5d205b0")
-	)
-	(junction
 		(at 82.55 82.55)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -978,16 +972,6 @@
 			(type default)
 		)
 		(uuid "05028f01-5827-4e8e-b8bd-b844312aafa5")
-	)
-	(wire
-		(pts
-			(xy 180.34 120.65) (xy 76.2 120.65)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "068140d7-0804-4fef-a59e-d23e8484f3fe")
 	)
 	(wire
 		(pts
@@ -1068,6 +1052,16 @@
 			(type default)
 		)
 		(uuid "1e952726-95f4-4bb7-a5eb-547877a6132e")
+	)
+	(wire
+		(pts
+			(xy 66.04 120.65) (xy 180.34 120.65)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "204d96ab-dbcf-4fb4-98fe-1b331b570b10")
 	)
 	(wire
 		(pts
@@ -1301,7 +1295,7 @@
 	)
 	(wire
 		(pts
-			(xy 76.2 104.14) (xy 90.17 104.14)
+			(xy 66.04 104.14) (xy 90.17 104.14)
 		)
 		(stroke
 			(width 0)
@@ -1341,16 +1335,6 @@
 	)
 	(wire
 		(pts
-			(xy 66.04 104.14) (xy 76.2 104.14)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "853bbfb2-e0e8-453b-9001-62981f75b49a")
-	)
-	(wire
-		(pts
 			(xy 25.4 77.47) (xy 90.17 77.47)
 		)
 		(stroke
@@ -1368,16 +1352,6 @@
 			(type default)
 		)
 		(uuid "8813202d-9d53-46ba-bf19-19dcaa4ef202")
-	)
-	(wire
-		(pts
-			(xy 76.2 120.65) (xy 76.2 104.14)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8cec9e4e-f37e-4f1e-9ba0-138a2d765585")
 	)
 	(wire
 		(pts
@@ -2940,16 +2914,6 @@
 				(justify right)
 			)
 		)
-		(pin "Enable" output
-			(at 66.04 104.14 0)
-			(uuid "fc0ee911-ccb7-4e68-af4d-3629e2338af2")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
 		(pin "SPI_ADC_CS" output
 			(at 66.04 133.35 0)
 			(uuid "0d6946a3-6063-45be-be0e-f3a851d009a1")
@@ -3043,6 +3007,26 @@
 		(pin "GND" input
 			(at 53.34 90.17 90)
 			(uuid "cafe38f6-7fee-49ba-8f8b-401407cf07f7")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "Enable_DCDC" output
+			(at 66.04 104.14 0)
+			(uuid "91fd11b0-3208-49b2-8c14-86b99a41d6c7")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "Enable_Linear" output
+			(at 66.04 120.65 0)
+			(uuid "0d55ff9a-0738-4a5d-96c5-346e8dfcd265")
 			(effects
 				(font
 					(size 1.27 1.27)

@@ -1963,12 +1963,6 @@
 		(uuid "56db6670-691f-493c-9cb3-d7de27bca6a3")
 	)
 	(junction
-		(at 170.18 116.84)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "7deb034c-5d57-4e42-8b7a-b4a9dea57b8e")
-	)
-	(junction
 		(at 170.18 93.98)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2190,16 +2184,6 @@
 	)
 	(wire
 		(pts
-			(xy 179.07 116.84) (xy 170.18 116.84)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5634d57f-de6b-40fc-8790-83525459f81d")
-	)
-	(wire
-		(pts
 			(xy 128.27 93.98) (xy 132.08 93.98)
 		)
 		(stroke
@@ -2220,7 +2204,7 @@
 	)
 	(wire
 		(pts
-			(xy 170.18 116.84) (xy 167.64 116.84)
+			(xy 167.64 116.84) (xy 179.07 116.84)
 		)
 		(stroke
 			(width 0)
@@ -3184,89 +3168,6 @@
 				)
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/050244e6-1444-4a96-99d3-9213495a2268"
 					(reference "J101")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 170.18 116.84 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "94030e97-9dee-43c0-82dc-924346e3dd37")
-		(property "Reference" "TP602"
-			(at 172.72 112.2679 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "TestPoint"
-			(at 172.72 114.8079 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "LibEigen:SMD Test Point PCWCTE"
-			(at 175.26 116.84 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 175.26 116.84 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "test point"
-			(at 170.18 116.84 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "ee1af83e-ccd9-41c5-9573-a042e225357a")
-		)
-		(instances
-			(project "DualPreRegPowerSupply"
-				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/050244e6-1444-4a96-99d3-9213495a2268"
-					(reference "TP602")
-					(unit 1)
-				)
-				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/050244e6-1444-4a96-99d3-9213495a2268"
-					(reference "TP109")
 					(unit 1)
 				)
 			)
