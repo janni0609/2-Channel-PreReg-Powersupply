@@ -2604,7 +2604,7 @@
 	)
 	(text "@2A\n200mV\n400mW"
 		(exclude_from_sim no)
-		(at 224.79 88.9 0)
+		(at 219.71 86.36 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2644,13 +2644,14 @@
 		)
 		(uuid "7398627d-ce77-42b9-bb8e-21e1db5b7685")
 	)
-	(text "PCSK2512DR100P6"
+	(text "PCSK2512DR100P6\n0,5%\n25PPM/C"
 		(exclude_from_sim no)
-		(at 233.68 93.98 0)
+		(at 222.25 91.44 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
+			(justify left top)
 		)
 		(uuid "8f9f9a8d-07c5-4ef2-a3a9-5947ac80b7e9")
 	)
@@ -7130,7 +7131,7 @@
 				)
 			)
 		)
-		(property "Datasheet" ""
+		(property "Datasheet" "https://s.resistor.today/shop/products/epdf/PCSK.pdf"
 			(at 213.36 92.71 0)
 			(hide yes)
 			(show_name no)
