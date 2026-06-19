@@ -2669,6 +2669,12 @@
 		(color 0 0 0 0)
 		(uuid "6b15d1e6-1751-4529-b17a-8ccef1db3f86")
 	)
+	(junction
+		(at 24.13 168.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d02bd106-ba81-49ba-a6c5-b44594e151ae")
+	)
 	(wire
 		(pts
 			(xy 195.58 33.02) (xy 203.2 33.02)
@@ -2811,6 +2817,16 @@
 	)
 	(wire
 		(pts
+			(xy 24.13 185.42) (xy 45.72 185.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5f02bf55-a5ad-477c-b981-88f8b9f10cd9")
+	)
+	(wire
+		(pts
 			(xy 168.91 156.21) (xy 189.23 156.21)
 		)
 		(stroke
@@ -2908,6 +2924,16 @@
 			(type default)
 		)
 		(uuid "7bb89332-a077-46e3-959e-51b73497e7ef")
+	)
+	(wire
+		(pts
+			(xy 31.75 170.18) (xy 31.75 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7d4d5e28-120d-4aad-aef6-5a592a968fc1")
 	)
 	(wire
 		(pts
@@ -3021,6 +3047,16 @@
 	)
 	(wire
 		(pts
+			(xy 31.75 182.88) (xy 45.72 182.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b0a397c8-8d2d-459e-9696-ff55c96c95f2")
+	)
+	(wire
+		(pts
 			(xy 33.02 162.56) (xy 45.72 162.56)
 		)
 		(stroke
@@ -3028,6 +3064,16 @@
 			(type default)
 		)
 		(uuid "b18b6add-a50e-44d2-afb2-fda672f3dddb")
+	)
+	(wire
+		(pts
+			(xy 31.75 177.8) (xy 31.75 182.88)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b1d2c0dc-e1a0-4bc2-80d8-ef85516144ab")
 	)
 	(wire
 		(pts
@@ -3088,6 +3134,16 @@
 			(type default)
 		)
 		(uuid "c8798bff-4a5d-422a-855e-1d87c99cf8a4")
+	)
+	(wire
+		(pts
+			(xy 24.13 168.91) (xy 24.13 170.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c9a944db-4712-4713-b6d8-5376607f874e")
 	)
 	(wire
 		(pts
@@ -3221,6 +3277,26 @@
 	)
 	(wire
 		(pts
+			(xy 31.75 168.91) (xy 24.13 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ed2cd8cb-9481-4e09-b3bc-c441a4f6f4d5")
+	)
+	(wire
+		(pts
+			(xy 24.13 177.8) (xy 24.13 185.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ee662e84-6261-430d-ba3e-813caa80c460")
+	)
+	(wire
+		(pts
 			(xy 217.17 132.08) (xy 226.06 132.08)
 		)
 		(stroke
@@ -3228,6 +3304,16 @@
 			(type default)
 		)
 		(uuid "f4a3add8-cf31-47ee-8a9d-dee03877d747")
+	)
+	(wire
+		(pts
+			(xy 24.13 167.64) (xy 24.13 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f538a79d-7147-4f46-b5cc-6aadf2236bb6")
 	)
 	(wire
 		(pts
@@ -3298,6 +3384,16 @@
 			(justify right bottom)
 		)
 		(uuid "0d34fbd1-c6ce-42b1-b916-d5271b876460")
+	)
+	(label "W5500_INT"
+		(at 35.56 185.42 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "0da9aaa5-148d-4956-be83-f01ddf8737fd")
 	)
 	(label "CS"
 		(at 69.85 87.63 0)
@@ -3458,6 +3554,16 @@
 			(justify left bottom)
 		)
 		(uuid "8e04be2c-ec3d-4ba3-81e4-009ba8a05568")
+	)
+	(label "W5500_RST"
+		(at 35.56 182.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9aac4ad0-81ed-43f8-8895-81b26dd23233")
 	)
 	(label "SCK"
 		(at 69.85 80.01 0)
@@ -4030,6 +4136,85 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4"
 					(reference "#PWR0205")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 31.75 173.99 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "2487d402-ee74-451d-8827-063992e865d0")
+		(property "Reference" "R203"
+			(at 26.67 173.99 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "2k"
+			(at 29.21 173.99 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 33.528 173.99 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 31.75 173.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 31.75 173.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "09fccdee-6c3a-4ffa-953d-9130dd0acaee")
+		)
+		(pin "1"
+			(uuid "4a143677-8c18-4ae3-b3d5-e94582e18043")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4"
+					(reference "R203")
 					(unit 1)
 				)
 			)
@@ -5716,6 +5901,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R")
+		(at 24.13 173.99 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "8bdaba0c-8f48-48e0-9ae7-265653d8b163")
+		(property "Reference" "R201"
+			(at 19.05 173.99 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "2k"
+			(at 21.59 173.99 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 25.908 173.99 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 24.13 173.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 24.13 173.99 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "036faf18-0bb9-493d-a48c-b9d3c65f454c")
+		)
+		(pin "1"
+			(uuid "c89d2943-0de9-441a-b23c-0e113855a7d3")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4"
+					(reference "R201")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 245.11 113.03 0)
 		(unit 1)
@@ -5791,6 +6055,84 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4"
 					(reference "C202")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 24.13 167.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "95373ce0-1b44-4d99-9afb-ee8dfb770c16")
+		(property "Reference" "#PWR0207"
+			(at 24.13 171.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 24.13 162.56 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 24.13 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 24.13 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 24.13 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "7a59c5f9-3168-48c6-946e-0f9fbba6f0a1")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4"
+					(reference "#PWR0207")
 					(unit 1)
 				)
 			)

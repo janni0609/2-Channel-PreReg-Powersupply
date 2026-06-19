@@ -1732,6 +1732,12 @@
 		(uuid "348e20d1-0b46-41a5-897c-cb118782555d")
 	)
 	(junction
+		(at 195.58 24.13)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "358babc1-d8ef-4885-bd0d-450973ec8ba2")
+	)
+	(junction
 		(at 105.41 44.45)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2049,7 +2055,7 @@
 	)
 	(wire
 		(pts
-			(xy 198.12 24.13) (xy 185.42 24.13)
+			(xy 198.12 24.13) (xy 195.58 24.13)
 		)
 		(stroke
 			(width 0)
@@ -2336,6 +2342,16 @@
 			(type default)
 		)
 		(uuid "87e66ee1-a4d2-4aa2-bf18-cceaed7564c1")
+	)
+	(wire
+		(pts
+			(xy 195.58 24.13) (xy 185.42 24.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "88877398-8fba-4959-bceb-ef613777558d")
 	)
 	(wire
 		(pts
@@ -3530,6 +3546,89 @@
 				)
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/1e97c929-9584-4135-ba9a-4ad49b795d46"
 					(reference "L101")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint_Alt")
+		(at 195.58 24.13 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "5c189e4f-6498-4cbb-bd4e-0f2f8926cdc7")
+		(property "Reference" "TP602"
+			(at 198.12 19.5579 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "TestPoint_Alt"
+			(at 198.12 22.0979 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Keystone_5005-5009_Compact"
+			(at 200.66 24.13 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 200.66 24.13 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point (alternative shape)"
+			(at 195.58 24.13 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a880c76c-5d54-4b47-b845-26d600009ec5")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/1e97c929-9584-4135-ba9a-4ad49b795d46"
+					(reference "TP602")
+					(unit 1)
+				)
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/1e97c929-9584-4135-ba9a-4ad49b795d46"
+					(reference "TP1507")
 					(unit 1)
 				)
 			)
