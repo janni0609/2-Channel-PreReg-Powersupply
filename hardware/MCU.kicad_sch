@@ -3005,6 +3005,16 @@
 	)
 	(wire
 		(pts
+			(xy 250.19 105.41) (xy 242.57 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bfc5286c-f1b5-470b-9948-168347b2fd49")
+	)
+	(wire
+		(pts
 			(xy 175.26 78.74) (xy 185.42 78.74)
 		)
 		(stroke
@@ -3272,6 +3282,16 @@
 			(justify left bottom)
 		)
 		(uuid "78fe7a31-10fa-4b93-ae9d-637f7d420714")
+	)
+	(label "+3V3"
+		(at 250.19 105.41 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "7901b887-2755-4ed0-ac0f-766d6752775f")
 	)
 	(label "GND"
 		(at 220.98 152.4 90)
