@@ -3027,7 +3027,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "SM6T36A"
+		(property "Value" "SMBJ40A"
 			(at 116.84 106.6799 90)
 			(show_name no)
 			(do_not_autoplace no)
