@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "Library") (type "KiCad") (uri "C:/Users/janni/OneDrive/Schaltungen/kiDadStuff/FootprintsSelf/Library.pretty") (options "") (descr ""))
+)
