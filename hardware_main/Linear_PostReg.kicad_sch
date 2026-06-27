@@ -2628,7 +2628,7 @@
 		)
 		(uuid "252eeae1-1085-445a-9272-f0b4db0983a3")
 	)
-	(text "G=0,06935\nVin=36V --> Vout=2,49677V"
+	(text "G=1/15\nVin=36V --> Vout=2,4V"
 		(exclude_from_sim no)
 		(at 95.25 137.16 0)
 		(effects
@@ -2651,7 +2651,7 @@
 	)
 	(text "~12mA"
 		(exclude_from_sim no)
-		(at 266.7 133.35 0)
+		(at 266.7 124.46 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2680,7 +2680,7 @@
 		)
 		(uuid "aa42096b-0090-4fdc-ab05-be01778a69c1")
 	)
-	(text "G=12,25\nVin=200mV --> Vout=2,45V\n"
+	(text "G=12\nVin=200mV --> Vout=2,4V\n"
 		(exclude_from_sim no)
 		(at 149.86 99.06 0)
 		(effects
@@ -6333,7 +6333,7 @@
 				)
 			)
 		)
-		(property "Value" "62k"
+		(property "Value" "33k"
 			(at 167.64 143.51 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8017,7 +8017,7 @@
 				)
 			)
 		)
-		(property "Value" "4,3k"
+		(property "Value" "2,2k"
 			(at 132.08 152.4 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8102,7 +8102,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "18k"
+		(property "Value" "11k"
 			(at 175.26 110.4899 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8887,7 +8887,7 @@
 				)
 			)
 		)
-		(property "Value" "62k"
+		(property "Value" "33k"
 			(at 167.64 138.43 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9400,7 +9400,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "4,3k"
+		(property "Value" "2,2k"
 			(at 144.78 133.3499 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10118,7 +10118,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "1,6k"
+		(property "Value" "1k"
 			(at 175.26 120.6499 0)
 			(show_name no)
 			(do_not_autoplace no)

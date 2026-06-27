@@ -639,7 +639,7 @@
 	)
 	(wire
 		(pts
-			(xy 138.43 85.09) (xy 175.26 85.09)
+			(xy 123.19 106.68) (xy 160.02 106.68)
 		)
 		(stroke
 			(width 0)
@@ -649,7 +649,7 @@
 	)
 	(wire
 		(pts
-			(xy 227.33 60.96) (xy 227.33 62.23)
+			(xy 212.09 82.55) (xy 212.09 83.82)
 		)
 		(stroke
 			(width 0)
@@ -659,7 +659,7 @@
 	)
 	(wire
 		(pts
-			(xy 212.09 60.96) (xy 212.09 62.23)
+			(xy 196.85 82.55) (xy 196.85 83.82)
 		)
 		(stroke
 			(width 0)
@@ -669,7 +669,7 @@
 	)
 	(wire
 		(pts
-			(xy 204.47 99.06) (xy 204.47 100.33)
+			(xy 189.23 120.65) (xy 189.23 121.92)
 		)
 		(stroke
 			(width 0)
@@ -679,7 +679,7 @@
 	)
 	(wire
 		(pts
-			(xy 138.43 49.53) (xy 175.26 49.53)
+			(xy 123.19 71.12) (xy 160.02 71.12)
 		)
 		(stroke
 			(width 0)
@@ -689,7 +689,7 @@
 	)
 	(wire
 		(pts
-			(xy 212.09 99.06) (xy 212.09 100.33)
+			(xy 196.85 120.65) (xy 196.85 121.92)
 		)
 		(stroke
 			(width 0)
@@ -699,7 +699,7 @@
 	)
 	(wire
 		(pts
-			(xy 138.43 87.63) (xy 175.26 87.63)
+			(xy 123.19 109.22) (xy 160.02 109.22)
 		)
 		(stroke
 			(width 0)
@@ -709,7 +709,7 @@
 	)
 	(wire
 		(pts
-			(xy 219.71 99.06) (xy 219.71 100.33)
+			(xy 204.47 120.65) (xy 204.47 121.92)
 		)
 		(stroke
 			(width 0)
@@ -719,7 +719,7 @@
 	)
 	(wire
 		(pts
-			(xy 227.33 99.06) (xy 227.33 100.33)
+			(xy 212.09 120.65) (xy 212.09 121.92)
 		)
 		(stroke
 			(width 0)
@@ -729,7 +729,7 @@
 	)
 	(wire
 		(pts
-			(xy 138.43 46.99) (xy 175.26 46.99)
+			(xy 123.19 68.58) (xy 160.02 68.58)
 		)
 		(stroke
 			(width 0)
@@ -739,7 +739,7 @@
 	)
 	(wire
 		(pts
-			(xy 219.71 60.96) (xy 219.71 62.23)
+			(xy 204.47 82.55) (xy 204.47 83.82)
 		)
 		(stroke
 			(width 0)
@@ -749,7 +749,7 @@
 	)
 	(wire
 		(pts
-			(xy 204.47 60.96) (xy 204.47 62.23)
+			(xy 189.23 82.55) (xy 189.23 83.82)
 		)
 		(stroke
 			(width 0)
@@ -759,7 +759,7 @@
 	)
 	(symbol
 		(lib_id "power:GND1")
-		(at 227.33 62.23 0)
+		(at 212.09 83.82 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -769,7 +769,7 @@
 		(dnp no)
 		(uuid "1b8f9357-51e4-46b4-9825-15b18508fa32")
 		(property "Reference" "#PWR0104"
-			(at 227.33 68.58 0)
+			(at 212.09 90.17 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -780,7 +780,7 @@
 			)
 		)
 		(property "Value" "GND_Ch1"
-			(at 227.33 69.85 90)
+			(at 212.09 91.44 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -790,7 +790,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 227.33 62.23 0)
+			(at 212.09 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -801,7 +801,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 227.33 62.23 0)
+			(at 212.09 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -812,7 +812,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND_Ch1\" , ground"
-			(at 227.33 62.23 0)
+			(at 212.09 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -836,7 +836,7 @@
 	)
 	(symbol
 		(lib_id "power:-2V5")
-		(at 212.09 100.33 180)
+		(at 196.85 121.92 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -846,7 +846,7 @@
 		(dnp no)
 		(uuid "2801e448-3d4e-49bb-b260-1670b9291945")
 		(property "Reference" "#PWR0106"
-			(at 212.09 96.52 0)
+			(at 196.85 118.11 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -857,7 +857,7 @@
 			)
 		)
 		(property "Value" "-1V2Ch2"
-			(at 212.09 107.95 90)
+			(at 196.85 129.54 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -867,7 +867,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 212.09 100.33 0)
+			(at 196.85 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -878,7 +878,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 212.09 100.33 0)
+			(at 196.85 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -889,7 +889,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"-1V2Ch2\""
-			(at 212.09 100.33 0)
+			(at 196.85 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -992,7 +992,7 @@
 	)
 	(symbol
 		(lib_id "power:GND1")
-		(at 227.33 100.33 0)
+		(at 212.09 121.92 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1002,7 +1002,7 @@
 		(dnp no)
 		(uuid "48dda8d6-bcf2-4022-98f4-5b7c4989da3d")
 		(property "Reference" "#PWR0108"
-			(at 227.33 106.68 0)
+			(at 212.09 128.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1013,7 +1013,7 @@
 			)
 		)
 		(property "Value" "GND_Ch2"
-			(at 227.33 107.95 90)
+			(at 212.09 129.54 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1023,7 +1023,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 227.33 100.33 0)
+			(at 212.09 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1034,7 +1034,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 227.33 100.33 0)
+			(at 212.09 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1045,7 +1045,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND_Ch2\" , ground"
-			(at 227.33 100.33 0)
+			(at 212.09 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1069,7 +1069,7 @@
 	)
 	(symbol
 		(lib_id "power:+3V3")
-		(at 204.47 100.33 180)
+		(at 189.23 121.92 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1079,7 +1079,7 @@
 		(dnp no)
 		(uuid "73d46a7d-5282-4330-b385-ec772db2f3c5")
 		(property "Reference" "#PWR0105"
-			(at 204.47 96.52 0)
+			(at 189.23 118.11 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1090,7 +1090,7 @@
 			)
 		)
 		(property "Value" "+3V3Ch2"
-			(at 204.47 107.95 90)
+			(at 189.23 129.54 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1100,7 +1100,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 204.47 100.33 0)
+			(at 189.23 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1111,7 +1111,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 204.47 100.33 0)
+			(at 189.23 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1122,7 +1122,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+3V3Ch2\""
-			(at 204.47 100.33 0)
+			(at 189.23 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1146,7 +1146,7 @@
 	)
 	(symbol
 		(lib_id "power:-2V5")
-		(at 212.09 62.23 180)
+		(at 196.85 83.82 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1156,7 +1156,7 @@
 		(dnp no)
 		(uuid "7cb07fa6-b06b-42f9-9b05-f7dd2a3a6eb4")
 		(property "Reference" "#PWR0101"
-			(at 212.09 58.42 0)
+			(at 196.85 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1167,7 +1167,7 @@
 			)
 		)
 		(property "Value" "-1V2Ch1"
-			(at 212.09 69.85 90)
+			(at 196.85 91.44 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1177,7 +1177,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 212.09 62.23 0)
+			(at 196.85 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1188,7 +1188,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 212.09 62.23 0)
+			(at 196.85 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1199,7 +1199,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"-1V2Ch1\""
-			(at 212.09 62.23 0)
+			(at 196.85 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1302,7 +1302,7 @@
 	)
 	(symbol
 		(lib_id "power:+48V")
-		(at 219.71 100.33 180)
+		(at 204.47 121.92 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1312,7 +1312,7 @@
 		(dnp no)
 		(uuid "b4fad0e4-97f0-4b66-9bf9-a7470a6e9b4c")
 		(property "Reference" "#PWR0107"
-			(at 219.71 96.52 0)
+			(at 204.47 118.11 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1323,7 +1323,7 @@
 			)
 		)
 		(property "Value" "+40VCh2"
-			(at 219.71 107.95 90)
+			(at 204.47 129.54 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1333,7 +1333,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 219.71 100.33 0)
+			(at 204.47 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1344,7 +1344,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 219.71 100.33 0)
+			(at 204.47 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1355,7 +1355,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+40VCh2\""
-			(at 219.71 100.33 0)
+			(at 204.47 121.92 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1379,7 +1379,7 @@
 	)
 	(symbol
 		(lib_id "power:+48V")
-		(at 219.71 62.23 180)
+		(at 204.47 83.82 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1389,7 +1389,7 @@
 		(dnp no)
 		(uuid "b6abd029-824b-4103-969c-2e0921036bca")
 		(property "Reference" "#PWR0102"
-			(at 219.71 58.42 0)
+			(at 204.47 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1400,7 +1400,7 @@
 			)
 		)
 		(property "Value" "+40VCh1"
-			(at 219.71 69.85 90)
+			(at 204.47 91.44 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1410,7 +1410,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 219.71 62.23 0)
+			(at 204.47 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1421,7 +1421,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 219.71 62.23 0)
+			(at 204.47 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1432,7 +1432,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+40VCh1\""
-			(at 219.71 62.23 0)
+			(at 204.47 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1535,7 +1535,7 @@
 	)
 	(symbol
 		(lib_id "power:+3V3")
-		(at 204.47 62.23 180)
+		(at 189.23 83.82 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1545,7 +1545,7 @@
 		(dnp no)
 		(uuid "c1b91b21-2307-4292-8398-68fac8854055")
 		(property "Reference" "#PWR0103"
-			(at 204.47 58.42 0)
+			(at 189.23 80.01 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1556,7 +1556,7 @@
 			)
 		)
 		(property "Value" "+3V3Ch1"
-			(at 204.47 69.85 90)
+			(at 189.23 91.44 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1566,7 +1566,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 204.47 62.23 0)
+			(at 189.23 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1577,7 +1577,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 204.47 62.23 0)
+			(at 189.23 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1588,7 +1588,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+3V3Ch1\""
-			(at 204.47 62.23 0)
+			(at 189.23 83.82 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1690,7 +1690,7 @@
 		)
 	)
 	(sheet
-		(at 175.26 38.1)
+		(at 160.02 59.69)
 		(size 53.34 22.86)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1706,7 +1706,7 @@
 		)
 		(uuid "19bfe284-0b9b-4876-b680-4ee0d6ee0ed7")
 		(property "Sheetname" "Ch1Power"
-			(at 175.26 37.3884 0)
+			(at 160.02 58.9784 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1717,7 +1717,7 @@
 			)
 		)
 		(property "Sheetfile" "Ch1Power.kicad_sch"
-			(at 175.26 61.5446 0)
+			(at 160.02 83.1346 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1728,7 +1728,7 @@
 			)
 		)
 		(pin "Rx_Ctr" output
-			(at 175.26 46.99 180)
+			(at 160.02 68.58 180)
 			(uuid "ea291f44-a1f4-4af2-9bd3-ed37dcbdaae4")
 			(effects
 				(font
@@ -1738,7 +1738,7 @@
 			)
 		)
 		(pin "Tx_Ctr" input
-			(at 175.26 49.53 180)
+			(at 160.02 71.12 180)
 			(uuid "886e69ac-3db3-40b8-bb71-739beed447ab")
 			(effects
 				(font
@@ -1748,7 +1748,7 @@
 			)
 		)
 		(pin "+3V3" input
-			(at 204.47 60.96 270)
+			(at 189.23 82.55 270)
 			(uuid "0c6fae01-8539-4396-8627-51054215c2e9")
 			(effects
 				(font
@@ -1758,7 +1758,7 @@
 			)
 		)
 		(pin "-1V2" input
-			(at 212.09 60.96 270)
+			(at 196.85 82.55 270)
 			(uuid "e64dd5ee-0998-4473-8350-a56637ec0f62")
 			(effects
 				(font
@@ -1768,7 +1768,7 @@
 			)
 		)
 		(pin "40V" input
-			(at 219.71 60.96 270)
+			(at 204.47 82.55 270)
 			(uuid "9eaa0b2c-3e32-4ddc-8001-ad75578957d2")
 			(effects
 				(font
@@ -1778,7 +1778,7 @@
 			)
 		)
 		(pin "GND" input
-			(at 227.33 60.96 270)
+			(at 212.09 82.55 270)
 			(uuid "1b095f3c-0117-49e7-b91c-c54a4474dd4f")
 			(effects
 				(font
@@ -1796,7 +1796,7 @@
 		)
 	)
 	(sheet
-		(at 175.26 76.2)
+		(at 160.02 97.79)
 		(size 53.34 22.86)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1812,7 +1812,7 @@
 		)
 		(uuid "343e6ab8-61bf-4409-bd59-a9fdebf952af")
 		(property "Sheetname" "Ch1Power1"
-			(at 175.26 75.4884 0)
+			(at 160.02 97.0784 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1823,7 +1823,7 @@
 			)
 		)
 		(property "Sheetfile" "Ch1Power.kicad_sch"
-			(at 175.26 99.6446 0)
+			(at 160.02 121.2346 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1834,7 +1834,7 @@
 			)
 		)
 		(pin "Rx_Ctr" output
-			(at 175.26 85.09 180)
+			(at 160.02 106.68 180)
 			(uuid "769cec80-5942-4386-b65c-a02ebfb30872")
 			(effects
 				(font
@@ -1844,7 +1844,7 @@
 			)
 		)
 		(pin "Tx_Ctr" input
-			(at 175.26 87.63 180)
+			(at 160.02 109.22 180)
 			(uuid "4f985d1d-0fca-46d9-8017-89bac0464dce")
 			(effects
 				(font
@@ -1854,7 +1854,7 @@
 			)
 		)
 		(pin "+3V3" input
-			(at 204.47 99.06 270)
+			(at 189.23 120.65 270)
 			(uuid "f27de78b-52fe-475e-b713-73e70b799f2a")
 			(effects
 				(font
@@ -1864,7 +1864,7 @@
 			)
 		)
 		(pin "-1V2" input
-			(at 212.09 99.06 270)
+			(at 196.85 120.65 270)
 			(uuid "f9a6d4c9-27d2-4666-a4cb-6c91601f6e17")
 			(effects
 				(font
@@ -1874,7 +1874,7 @@
 			)
 		)
 		(pin "40V" input
-			(at 219.71 99.06 270)
+			(at 204.47 120.65 270)
 			(uuid "cab71d6d-f924-481f-b3c0-ecd1bb5af276")
 			(effects
 				(font
@@ -1884,7 +1884,7 @@
 			)
 		)
 		(pin "GND" input
-			(at 227.33 99.06 270)
+			(at 212.09 120.65 270)
 			(uuid "39665ffd-9e37-4bf1-9640-f73fbc17854d")
 			(effects
 				(font
@@ -1902,7 +1902,7 @@
 		)
 	)
 	(sheet
-		(at 100.33 38.1)
+		(at 85.09 59.69)
 		(size 38.1 60.96)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1918,7 +1918,7 @@
 		)
 		(uuid "d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4")
 		(property "Sheetname" "Control"
-			(at 100.33 37.3884 0)
+			(at 85.09 58.9784 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1929,7 +1929,7 @@
 			)
 		)
 		(property "Sheetfile" "Control.kicad_sch"
-			(at 100.33 99.6446 0)
+			(at 85.09 121.2346 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1940,7 +1940,7 @@
 			)
 		)
 		(property "Field2" ""
-			(at 100.33 38.1 0)
+			(at 85.09 59.69 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1950,7 +1950,7 @@
 			)
 		)
 		(pin "Rx_Ch1" input
-			(at 138.43 46.99 0)
+			(at 123.19 68.58 0)
 			(uuid "90b4133a-65ca-43bd-b7d5-95c016e91360")
 			(effects
 				(font
@@ -1960,7 +1960,7 @@
 			)
 		)
 		(pin "Rx_Ch2" input
-			(at 138.43 85.09 0)
+			(at 123.19 106.68 0)
 			(uuid "d8b3a98e-6485-4da3-b218-1cb64e6a9089")
 			(effects
 				(font
@@ -1970,7 +1970,7 @@
 			)
 		)
 		(pin "Tx_Ch1" output
-			(at 138.43 49.53 0)
+			(at 123.19 71.12 0)
 			(uuid "26e77050-e641-45a3-b8a8-2bd71376e66d")
 			(effects
 				(font
@@ -1980,7 +1980,7 @@
 			)
 		)
 		(pin "Tx_Ch2" output
-			(at 138.43 87.63 0)
+			(at 123.19 109.22 0)
 			(uuid "dfed4bd3-b06d-46c5-a690-8f24013ca090")
 			(effects
 				(font

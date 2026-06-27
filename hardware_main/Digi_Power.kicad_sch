@@ -211,6 +211,130 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Connector:TestPoint_Alt"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.762)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "TP"
+				(at 0 6.858 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "TestPoint_Alt"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "test point (alternative shape)"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "test point tp"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Pin* Test*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "TestPoint_Alt_0_1"
+				(polyline
+					(pts
+						(xy 0 2.54) (xy -0.762 3.302) (xy 0 4.064) (xy 0.762 3.302) (xy 0 2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "TestPoint_Alt_1_1"
+				(pin passive line
+					(at 0 0 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:C"
 			(pin_numbers
 				(hide yes)
@@ -1809,6 +1933,12 @@
 		(uuid "10409622-768f-4b6d-ba79-41e8aba0d367")
 	)
 	(junction
+		(at 200.66 43.18)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "339ea56d-5857-46ad-9124-2cb43ebecc6d")
+	)
+	(junction
 		(at 173.99 22.86)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1837,6 +1967,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "58259726-baa9-4f04-a8fa-c3c827304253")
+	)
+	(junction
+		(at 68.58 22.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5d4da4eb-b226-4225-989e-d152326348a9")
 	)
 	(junction
 		(at 80.01 22.86)
@@ -1946,6 +2082,22 @@
 		(color 0 0 0 0)
 		(uuid "dde5bb54-1141-49e5-810d-22bc9d64fc92")
 	)
+	(junction
+		(at 187.96 22.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "e4956215-a59f-4ce1-be4a-7aad6fb77b35")
+	)
+	(wire
+		(pts
+			(xy 200.66 43.18) (xy 196.85 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "05c43b3a-fafe-4809-9c35-c6793fa9a1f0")
+	)
 	(wire
 		(pts
 			(xy 38.1 43.18) (xy 57.15 43.18)
@@ -2018,7 +2170,7 @@
 	)
 	(wire
 		(pts
-			(xy 186.69 22.86) (xy 196.85 22.86)
+			(xy 186.69 22.86) (xy 187.96 22.86)
 		)
 		(stroke
 			(width 0)
@@ -2028,7 +2180,7 @@
 	)
 	(wire
 		(pts
-			(xy 205.74 43.18) (xy 196.85 43.18)
+			(xy 205.74 43.18) (xy 200.66 43.18)
 		)
 		(stroke
 			(width 0)
@@ -2058,6 +2210,16 @@
 	)
 	(wire
 		(pts
+			(xy 187.96 22.86) (xy 196.85 22.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "28ed3e31-04ee-494e-89a4-315f36e1d7d1")
+	)
+	(wire
+		(pts
 			(xy 105.41 43.18) (xy 129.54 43.18)
 		)
 		(stroke
@@ -2068,7 +2230,7 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 22.86) (xy 80.01 22.86)
+			(xy 57.15 22.86) (xy 68.58 22.86)
 		)
 		(stroke
 			(width 0)
@@ -2115,6 +2277,16 @@
 			(type default)
 		)
 		(uuid "406be2b8-bb2e-420c-a954-870f6ab02bb6")
+	)
+	(wire
+		(pts
+			(xy 68.58 22.86) (xy 80.01 22.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4398451d-e348-430f-9b09-d70ba4da7303")
 	)
 	(wire
 		(pts
@@ -2770,6 +2942,85 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint_Alt")
+		(at 68.58 22.86 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "24b3fdab-606f-4915-bd66-6cce4a9eab98")
+		(property "Reference" "TP308"
+			(at 71.12 18.2879 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "TestPoint_Alt"
+			(at 71.12 20.8279 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Keystone_5005-5009_Compact"
+			(at 73.66 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 73.66 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point (alternative shape)"
+			(at 68.58 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "6f309152-0fa2-44e2-b993-480ad45b862b")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4/73dd4ba3-d26e-4586-a8b1-e2043852c815"
+					(reference "TP308")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:L")
 		(at 156.21 22.86 90)
 		(unit 1)
@@ -3342,6 +3593,164 @@
 			(project "DualPreRegPowerSupply"
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4/73dd4ba3-d26e-4586-a8b1-e2043852c815"
 					(reference "J901")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint_Alt")
+		(at 187.96 22.86 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "4c9be48e-a562-4ef5-9e2c-04bfcad26dd3")
+		(property "Reference" "TP307"
+			(at 190.5 18.2879 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "TestPoint_Alt"
+			(at 190.5 20.8279 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Keystone_5005-5009_Compact"
+			(at 193.04 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 193.04 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point (alternative shape)"
+			(at 187.96 22.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "94850ec0-aef0-4a9b-8073-52a096f3d56e")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4/73dd4ba3-d26e-4586-a8b1-e2043852c815"
+					(reference "TP307")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint_Alt")
+		(at 200.66 43.18 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "54397f29-cfe4-43ae-a51b-16f83d6f407b")
+		(property "Reference" "TP306"
+			(at 203.2 38.6079 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "TestPoint_Alt"
+			(at 203.2 41.1479 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Keystone_5005-5009_Compact"
+			(at 205.74 43.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 205.74 43.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point (alternative shape)"
+			(at 200.66 43.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "38e998b3-0fd0-467f-ae2c-e5ddbe156e84")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/d54e2908-d0ac-4ddd-a9ad-a89c1c7b2ee4/73dd4ba3-d26e-4586-a8b1-e2043852c815"
+					(reference "TP306")
 					(unit 1)
 				)
 			)
