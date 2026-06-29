@@ -3332,7 +3332,7 @@
 	)
 	(wire
 		(pts
-			(xy 33.02 152.4) (xy 45.72 152.4)
+			(xy 33.02 160.02) (xy 45.72 160.02)
 		)
 		(stroke
 			(width 0)
@@ -3522,7 +3522,7 @@
 	)
 	(wire
 		(pts
-			(xy 144.78 67.31) (xy 130.81 67.31)
+			(xy 144.78 59.69) (xy 130.81 59.69)
 		)
 		(stroke
 			(width 0)
@@ -3852,17 +3852,7 @@
 	)
 	(wire
 		(pts
-			(xy 130.81 85.09) (xy 143.51 85.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dc006e9f-ce8e-4337-873f-1b8de4eae52e")
-	)
-	(wire
-		(pts
-			(xy 144.78 57.15) (xy 130.81 57.15)
+			(xy 144.78 67.31) (xy 130.81 67.31)
 		)
 		(stroke
 			(width 0)
@@ -3912,7 +3902,7 @@
 	)
 	(wire
 		(pts
-			(xy 33.02 160.02) (xy 45.72 160.02)
+			(xy 33.02 152.4) (xy 45.72 152.4)
 		)
 		(stroke
 			(width 0)
@@ -4001,7 +3991,7 @@
 		(uuid "00aea345-182b-47aa-b1bc-ab4cd523cf60")
 	)
 	(label "W5500_MISO"
-		(at 144.78 57.15 180)
+		(at 144.78 67.31 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4091,7 +4081,7 @@
 		(uuid "266dcc74-9b28-48fd-836c-65b5f8ed27d1")
 	)
 	(label "W5500_CS"
-		(at 33.02 160.02 0)
+		(at 33.02 152.4 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4201,7 +4191,7 @@
 		(uuid "83e52f8f-dfb7-4070-b959-84fffdb0bf0e")
 	)
 	(label "W5500_CS"
-		(at 144.78 67.31 180)
+		(at 144.78 59.69 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4260,18 +4250,8 @@
 		)
 		(uuid "9c7da79a-a876-44c2-8a01-f627e6fe30b2")
 	)
-	(label "Buzzer"
-		(at 143.51 85.09 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "af189201-c4ed-4760-9011-69b9b09e5d47")
-	)
 	(label "W5500_MISO"
-		(at 33.02 152.4 0)
+		(at 33.02 160.02 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4935,7 +4915,7 @@
 				)
 			)
 		)
-		(property "Value" "2k"
+		(property "Value" "10k"
 			(at 29.21 173.99 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6538,7 +6518,7 @@
 				)
 			)
 		)
-		(property "Value" "2k"
+		(property "Value" "10k"
 			(at 21.59 173.99 90)
 			(show_name no)
 			(do_not_autoplace no)

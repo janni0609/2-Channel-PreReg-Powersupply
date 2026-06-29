@@ -4701,7 +4701,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "bc74b7c4-973d-49f0-9e41-0a98618f4ea4")
 		(property "Reference" "R504"
 			(at 127 76.2 90)

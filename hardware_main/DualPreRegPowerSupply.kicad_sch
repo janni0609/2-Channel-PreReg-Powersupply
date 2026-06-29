@@ -1691,7 +1691,7 @@
 	)
 	(sheet
 		(at 160.02 59.69)
-		(size 53.34 22.86)
+		(size 55.88 22.86)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
@@ -1797,7 +1797,7 @@
 	)
 	(sheet
 		(at 160.02 97.79)
-		(size 53.34 22.86)
+		(size 55.88 22.86)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
