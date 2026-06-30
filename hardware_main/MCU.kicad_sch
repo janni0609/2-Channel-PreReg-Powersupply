@@ -4008,7 +4008,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "LED 3V3"
+		(property "Value" "red LED 3V3"
 			(at 163.83 113.3474 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4877,7 +4877,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "LED 3V3"
+		(property "Value" "red LED 3V3"
 			(at 234.95 133.6674 90)
 			(show_name no)
 			(do_not_autoplace no)

@@ -2679,7 +2679,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "LED 40V"
+		(property "Value" "green LED 40V"
 			(at 198.12 112.0774 90)
 			(show_name no)
 			(do_not_autoplace no)
