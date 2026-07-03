@@ -2020,6 +2020,12 @@
 		(uuid "b0a10a66-717e-4aac-83c5-ef4cc300f447")
 	)
 	(junction
+		(at 204.47 137.16)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "063b524d-7197-4275-9647-9f74c841f6a3")
+	)
+	(junction
 		(at 217.17 109.22)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2212,6 +2218,12 @@
 		(uuid "c04ad844-e48b-40bb-9686-5fba74cf50c5")
 	)
 	(junction
+		(at 204.47 109.22)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d6f45aba-4131-435d-b35d-d99385a7b53e")
+	)
+	(junction
 		(at 222.25 73.66)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2373,6 +2385,16 @@
 	)
 	(wire
 		(pts
+			(xy 204.47 128.27) (xy 204.47 137.16)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1e0354c3-d9eb-46dc-bbc0-64a9a2710b96")
+	)
+	(wire
+		(pts
 			(xy 193.04 115.57) (xy 193.04 116.84)
 		)
 		(stroke
@@ -2493,7 +2515,7 @@
 	)
 	(wire
 		(pts
-			(xy 193.04 137.16) (xy 237.49 137.16)
+			(xy 193.04 137.16) (xy 204.47 137.16)
 		)
 		(stroke
 			(width 0)
@@ -2733,6 +2755,16 @@
 	)
 	(wire
 		(pts
+			(xy 204.47 109.22) (xy 204.47 120.65)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6fd02427-2397-4c95-8370-daca4ff6a27f")
+	)
+	(wire
+		(pts
 			(xy 137.16 95.25) (xy 137.16 96.52)
 		)
 		(stroke
@@ -2850,6 +2882,16 @@
 			(type default)
 		)
 		(uuid "88cd4b5e-5fab-457e-a9b0-3720a50c4c55")
+	)
+	(wire
+		(pts
+			(xy 204.47 137.16) (xy 237.49 137.16)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8a890473-3b8a-4b99-8956-93398635ac32")
 	)
 	(wire
 		(pts
@@ -2990,6 +3032,16 @@
 			(type default)
 		)
 		(uuid "aa139793-cfaa-49b9-9c8e-ea59cbb0e53d")
+	)
+	(wire
+		(pts
+			(xy 204.47 109.22) (xy 217.17 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ab6c7b42-40f1-41fa-bf3d-6f84872de462")
 	)
 	(wire
 		(pts
@@ -3293,7 +3345,7 @@
 	)
 	(wire
 		(pts
-			(xy 203.2 109.22) (xy 217.17 109.22)
+			(xy 203.2 109.22) (xy 204.47 109.22)
 		)
 		(stroke
 			(width 0)
@@ -4033,6 +4085,92 @@
 				)
 				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/5421e415-5d68-4eaa-8c24-bcc4d6156d8b"
 					(reference "U104")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 204.47 124.46 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp yes)
+		(fields_autoplaced yes)
+		(uuid "25bb8192-d532-453f-929a-5db34ec1e5e5")
+		(property "Reference" "C908"
+			(at 208.28 123.1899 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "opt"
+			(at 208.28 125.7299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+			(at 205.4352 128.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 204.47 124.46 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 204.47 124.46 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "332a0082-526d-4afb-afba-7c18fd6fda4e")
+		)
+		(pin "2"
+			(uuid "cb09f2e0-104e-4a3e-a8f9-caff4ced5d3e")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/5421e415-5d68-4eaa-8c24-bcc4d6156d8b"
+					(reference "C908")
+					(unit 1)
+				)
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/5421e415-5d68-4eaa-8c24-bcc4d6156d8b"
+					(reference "C1401")
 					(unit 1)
 				)
 			)
