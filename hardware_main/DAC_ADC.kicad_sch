@@ -1067,6 +1067,16 @@
 		)
 		(uuid "003bb369-deae-458d-9451-1bc3dffa91f6")
 	)
+	(text "τ = 9 us"
+		(exclude_from_sim no)
+		(at 205.74 123.19 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "18231ad8-dd19-4215-91a8-d46bc0838637")
+	)
 	(text "33 Hz LPF"
 		(exclude_from_sim no)
 		(at 92.71 34.29 0)
@@ -1077,9 +1087,9 @@
 		)
 		(uuid "2b3c21a9-d72d-4f1f-b6fb-984837951b4e")
 	)
-	(text "Iout = Iset * 1/12"
+	(text "Iout = Iset * 1/1,2\n2,44 / 1,2 = 2,0333A"
 		(exclude_from_sim no)
-		(at 160.02 130.81 0)
+		(at 161.29 127 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1088,7 +1098,7 @@
 		)
 		(uuid "63b6d6c8-25ac-42dd-bbe1-b187d995baa5")
 	)
-	(text "Vout = Vset * 15"
+	(text "Vout = Vset * 15\n2,44 * 15 = 36,6V"
 		(exclude_from_sim no)
 		(at 162.56 102.87 0)
 		(effects
@@ -1335,7 +1345,7 @@
 	)
 	(wire
 		(pts
-			(xy 151.13 170.18) (xy 151.13 165.1)
+			(xy 149.86 158.75) (xy 149.86 153.67)
 		)
 		(stroke
 			(width 0)
@@ -1375,7 +1385,7 @@
 	)
 	(wire
 		(pts
-			(xy 151.13 152.4) (xy 151.13 157.48)
+			(xy 149.86 140.97) (xy 149.86 146.05)
 		)
 		(stroke
 			(width 0)
@@ -1402,6 +1412,16 @@
 			(type default)
 		)
 		(uuid "b4eefdd2-c6b9-41e3-afed-131764d68767")
+	)
+	(wire
+		(pts
+			(xy 124.46 140.97) (xy 124.46 146.05)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b51e666b-c054-4080-8bb3-b287e22cbb3c")
 	)
 	(wire
 		(pts
@@ -1475,6 +1495,16 @@
 	)
 	(wire
 		(pts
+			(xy 124.46 158.75) (xy 124.46 153.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d078b731-d2ea-48e6-a37e-fe2707dc7579")
+	)
+	(wire
+		(pts
 			(xy 149.86 133.35) (xy 149.86 128.27)
 		)
 		(stroke
@@ -1534,7 +1564,7 @@
 		(uuid "f815a61f-4790-4da3-85ed-2c25f4c4c873")
 	)
 	(label "+3V3"
-		(at 151.13 152.4 270)
+		(at 149.86 140.97 270)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1623,6 +1653,16 @@
 		)
 		(uuid "ad0741a4-3d98-4521-9137-0ad432aa9967")
 	)
+	(label "+3V3"
+		(at 124.46 140.97 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "af6c1638-3237-4a11-964e-343de69bc832")
+	)
 	(label "GND"
 		(at 200.66 118.11 90)
 		(effects
@@ -1654,7 +1694,17 @@
 		(uuid "d1778a45-a8f9-45cc-b65a-7beb0d1a90e2")
 	)
 	(label "GND"
-		(at 151.13 170.18 90)
+		(at 124.46 158.75 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d2050eee-5ed2-43c7-9606-91e22bbc82cf")
+	)
+	(label "GND"
+		(at 149.86 158.75 90)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1860,7 +1910,7 @@
 	)
 	(symbol
 		(lib_id "Device:C")
-		(at 151.13 161.29 0)
+		(at 149.86 149.86 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -1871,7 +1921,7 @@
 		(fields_autoplaced yes)
 		(uuid "274aa34a-ea59-4739-a4b6-ea301fc6ef22")
 		(property "Reference" "C704"
-			(at 154.94 160.0199 0)
+			(at 153.67 148.5899 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1882,7 +1932,7 @@
 			)
 		)
 		(property "Value" "100n"
-			(at 154.94 162.5599 0)
+			(at 153.67 151.1299 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -1893,7 +1943,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 152.0952 165.1 0)
+			(at 150.8252 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1904,7 +1954,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 151.13 161.29 0)
+			(at 149.86 149.86 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1915,7 +1965,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 151.13 161.29 0)
+			(at 149.86 149.86 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2076,7 +2126,7 @@
 				)
 			)
 		)
-		(property "Value" "1k"
+		(property "Value" "10k"
 			(at 193.04 120.65 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2160,7 +2210,7 @@
 				)
 			)
 		)
-		(property "Value" "1k"
+		(property "Value" "12k"
 			(at 193.04 100.33 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2564,6 +2614,92 @@
 	)
 	(symbol
 		(lib_id "Device:C")
+		(at 124.46 149.86 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b9cb2c9d-f834-4572-8147-56d1b186c658")
+		(property "Reference" "C808"
+			(at 128.27 148.5899 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10u"
+			(at 128.27 151.1299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+			(at 125.4252 153.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 124.46 149.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 124.46 149.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "dfa3f8e8-a313-4d95-9fcb-bf2409e98652")
+		)
+		(pin "2"
+			(uuid "82d1df00-565d-4652-a3f2-7f38d3d4f4b4")
+		)
+		(instances
+			(project "DualPreRegPowerSupply"
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/19bfe284-0b9b-4876-b680-4ee0d6ee0ed7/1a990e4c-7950-4fbe-9b2e-533f3df9e505"
+					(reference "C808")
+					(unit 1)
+				)
+				(path "/6e74608c-23b9-4b98-8fc4-fa8fd655ae50/343e6ab8-61bf-4409-bd59-a9fdebf952af/1a990e4c-7950-4fbe-9b2e-533f3df9e505"
+					(reference "C1303")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
 		(at 200.66 129.54 0)
 		(unit 1)
 		(body_style 1)
@@ -2585,7 +2721,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "4,7u"
+		(property "Value" "27n"
 			(at 204.47 130.8099 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2671,7 +2807,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "4,7u"
+		(property "Value" "100n"
 			(at 204.47 110.4899 0)
 			(show_name no)
 			(do_not_autoplace no)

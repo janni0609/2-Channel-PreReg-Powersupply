@@ -9219,7 +9219,7 @@
 			)
 		)
 		(property "Value" "MCP23008T-E/SS"
-			(at 190.8967 87.63 0)
+			(at 189.23 85.09 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects

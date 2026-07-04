@@ -2879,7 +2879,7 @@
 		(dnp no)
 		(uuid "04d4a435-dda5-4aab-b0b6-1ccc7507a424")
 		(property "Reference" "TP606"
-			(at 199.39 36.83 0)
+			(at 199.39 35.56 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
