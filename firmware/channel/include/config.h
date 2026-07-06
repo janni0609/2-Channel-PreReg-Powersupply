@@ -80,7 +80,7 @@
 /* ------------------------------------------------------------------ */
 /* Setpoint limits (engineering units, see README for the convention) */
 /* ------------------------------------------------------------------ */
-#define SETPOINT_V_MAX_MV       30000   /* clamp for incoming set voltage  */
-#define SETPOINT_I_MAX_MA       5000    /* clamp for incoming set current  */
+#define SETPOINT_V_MAX_MV       35000   /* clamp for incoming set voltage  */
+#define SETPOINT_I_MAX_MA       2000    /* clamp for incoming set current  */
 
 #endif /* CHANNEL_CONFIG_H */
