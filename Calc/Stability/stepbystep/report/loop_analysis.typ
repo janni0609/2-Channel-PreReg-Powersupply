@@ -17,7 +17,7 @@
   (#raw("simple loops.kicad_sch"), sheets V_loop and I_loop)]\
   #v(2pt)
   #text(size: 9pt, fill: gray.darken(40%))[Companion document to
-  #raw("V_loop_transfer_functions.ipynb") and #raw("I_loop_transfer_functions.ipynb") — 2026-07-04]
+  #raw("V_loop_transfer_functions.ipynb") and #raw("I_loop_transfer_functions.ipynb") — 2026-07-06]
 ]
 #v(6pt)
 
@@ -71,6 +71,19 @@ high-frequency dynamic of both loops.* Two spreads are swept as corners:
   almost a decade across production spread.
 - Low-bias derating: Fig. 7 is specified at 3 A. At small collector current $f_T$ drops, so a
   derated corner with $f_(beta 1,2) = 20 slash 100$ kHz is checked ("LB" in the tables).
+
+*Minimum-load current sink (≈ 12 mA).* The production hardware places a constant-current
+sink on each output (BCP56 #raw("Q304"), diode bias #raw("D1006"), 47 Ω degeneration
+#raw("R320")), connected so that it *bypasses the current shunt*. The pass transistor
+therefore never idles below ≈ 12 mA — without it, only the ~1 mA sense-divider current flows
+at no load, and nothing bounds how far $f_beta$ collapses. Small-signal the sink is
+high-impedance (≳ 100 kΩ), so it does not change any load case; its benefit is *bias*: the
+LB corner becomes a *guaranteed pessimistic floor* instead of an open-ended assumption, and
+if 12 mA is enough to hold the Fig.-7 poles, the LB corner does not apply at all. The tables
+below report the worst case both ways. Because the sink bypasses the shunt, the current loop
+sees no 12 mA offset — CC regulates the true load current and setpoints below 12 mA remain
+usable; the pass device also never cuts off at no load, and the sink provides ~12 mA of
+down-programming current.
 
 #figure(image("fig_tip125.svg", width: 62%),
   caption: [Two-pole fit of the TIP125 small-signal current gain vs. datasheet Fig. 7
@@ -163,26 +176,29 @@ summarise why the result looks the way it does:
 
 #figure(
   table(
-    columns: (auto, auto, auto, auto, auto, auto, auto),
-    align: (left, right, right, right, right, right, right),
+    columns: (auto, auto, auto, auto, auto, auto, auto, auto),
+    align: (left, right, right, right, right, right, right, right),
     stroke: 0.4pt + gray,
     table.header([*load case*], [*$f_c$ [Hz]*], [*PM [°]*], [*GM [dB]*], [*$S_"pk"$*],
-                 [*worst PM [°]*], [*worst $S_"pk"$*]),
-    [no load (100 k)],        [23 930], [75.6], [28.1], [1.15], [37.0], [1.99],
-    [1 kΩ],                   [23 926], [75.7], [28.1], [1.15], [37.0], [1.99],
-    [100 Ω (nominal)],        [23 885], [76.1], [28.1], [1.15], [37.5], [1.97],
-    [10 Ω (heavy)],           [23 440], [79.7], [28.3], [1.14], [42.2], [1.83],
-    [100 Ω + 1 µF/1 Ω],       [21 801], [76.4], [28.9], [1.15], [40.2], [1.87],
-    [1 k + 4.7 µF/5 mΩ],      [16 534], [75.8], [24.3], [1.17], [46.1], [1.69],
-    [10 k + 10 µF/10 mΩ],     [12 240], [77.6], [26.3], [1.15], [53.6], [1.51],
-    [10 Ω + 100 µF/50 mΩ],    [2 252],  [89.7], [44.2], [1.01], [84.5], [1.05],
-    [10 Ω + 330 µF/30 mΩ],    [749],    [81.1], [48.7], [1.01], [62.7], [1.03],
-    [100 Ω + 470 µF/0.5 Ω],   [838],    [126.1],[32.2], [1.07], [61.0], [1.26],
-    [10 Ω + 1000 µF/20 mΩ],   [292],    [61.9], [52.2], [1.01], [40.0], [1.48],
+                 [*worst PM [°]*], [*floor PM [°]*], [*floor $S_"pk"$*]),
+    [no load (100 k)],        [23 930], [75.6], [28.1], [1.15], [47.8], [37.0], [1.99],
+    [1 kΩ],                   [23 926], [75.7], [28.1], [1.15], [47.8], [37.0], [1.99],
+    [100 Ω (nominal)],        [23 885], [76.1], [28.1], [1.15], [48.0], [37.5], [1.97],
+    [10 Ω (heavy)],           [23 440], [79.7], [28.3], [1.14], [50.1], [42.2], [1.83],
+    [100 Ω + 1 µF/1 Ω],       [21 801], [76.4], [28.9], [1.15], [50.9], [40.2], [1.87],
+    [1 k + 4.7 µF/5 mΩ],      [16 534], [75.8], [24.3], [1.17], [55.7], [46.1], [1.69],
+    [10 k + 10 µF/10 mΩ],     [12 240], [77.6], [26.3], [1.15], [62.4], [53.6], [1.51],
+    [10 Ω + 100 µF/50 mΩ],    [2 252],  [89.7], [44.2], [1.01], [86.1], [84.5], [1.05],
+    [10 Ω + 330 µF/30 mΩ],    [749],    [81.1], [48.7], [1.01], [62.7], [62.7], [1.03],
+    [100 Ω + 470 µF/0.5 Ω],   [838],    [126.1],[32.2], [1.07], [61.0], [61.0], [1.26],
+    [10 Ω + 1000 µF/20 mΩ],   [292],    [61.9], [52.2], [1.01], [40.0], [40.0], [1.48],
   ),
   caption: [V loop per load: left half at the typical corner ($beta_0 = 2000$,
-  $f_beta = 60 slash 300$ kHz, ESR 0.2 Ω); right half the worst case over all
-  β/ESR/low-bias corners.]) <vtable>
+  $f_beta = 60 slash 300$ kHz, ESR 0.2 Ω). *worst PM* = worst case over the β/ESR corners
+  with datasheet β poles (valid if the 12 mA sink holds the Fig.-7 poles); *floor PM /
+  floor $S_"pk"$* = additionally including the ÷3 low-bias pole corner — the guaranteed
+  bound at ≥ 12 mA bias. The global worst with datasheet poles is the 1000 µF case (40.0°,
+  β = 4000) — a load property, not a bias property.]) <vtable>
 
 #figure(
   table(
@@ -199,7 +215,9 @@ summarise why the result looks the way it does:
   ),
   caption: [V loop worst case per β corner, over all 11 loads and both ESR values. The
   binding corners are β = 4000 with low-ESR C2 (fast side) and the doubly derated low-bias
-  case (slow side); both remain stable with sensible margin.]) <vcorners>
+  case (slow side); both remain stable with sensible margin. The two low-bias rows are the
+  floor guaranteed by the 12 mA minimum-load sink — they no longer bind if 12 mA holds the
+  datasheet β poles.]) <vcorners>
 
 == Setpoint step and prefilter
 
@@ -295,7 +313,10 @@ speed/margin knee: 22 n is ≈ 20 % faster but sits at the acceptance edge
     [β = 2000, low-bias],   [14 662], [43.5], [14.3], [1.78],
   ),
   caption: [I loop margins per β corner. The numbers are *identical for every load* — the
-  load does not appear in $T(s)$ (@sec_iplant).]) <itable>
+  load does not appear in $T(s)$ (@sec_iplant). Worst case with datasheet β poles: 51.5°
+  (β = 4000); the low-bias rows are the 12 mA-sink-guaranteed floor (43.5° worst). The sink
+  bypasses the shunt, so it adds *no offset* to the sensed current — CC regulates the true
+  load current and setpoints below 12 mA remain usable.]) <itable>
 
 #figure(image("fig_i_corners.svg", width: 88%),
   caption: [I-loop gain across the TIP125 β corners (dashed: low-bias derated poles). Only
@@ -366,12 +387,16 @@ of the TIP125 β and of the load.
   ),
   caption: [Final component values (all E12).]) <finaltable>
 
-*Resulting worst-case margins* — V loop: PM ≥ 48°, GM ≥ 17 dB over all loads (short of the
-doubly derated low-bias corner, which bottoms at 37°); typical-β margins 62–126°. I loop:
-PM ≥ 51.5°, GM ≥ 15 dB over the full β spread (low-bias corner 43.5°), for *any* load.
+*Resulting worst-case margins* (with the ≈ 12 mA minimum-load sink keeping the pass device
+biased) — V loop: PM ≥ 40° with datasheet β poles (the binding case is the extreme
+10 Ω + 1000 µF load at β = 4000; every normal load stays ≥ 47.8°), GM ≥ 16.9 dB; the
+÷3-derated low-bias floor bottoms at 37°. Typical-β margins 62–126°. I loop: PM ≥ 51.5°,
+GM ≥ 15 dB over the full β spread (low-bias floor 43.5°), for *any* load. Before the sink,
+the low-bias corner was an open-ended assumption — the pass device idled at the ~1 mA
+divider current and nothing bounded the $f_beta$ collapse; now it is a guaranteed floor.
 
 *Not covered by these AC models*, to be verified on hardware: the CV↔CC handover through the
 D1/D2 diode-OR (the losing loop's integrator saturates and must slew back — an anti-windup
-clamp shortens the transition), the β-pole derating assumed for light loads (a small bleeder
-keeping tens of mA through the pass device firms it up), and thermal drift of the TIP125
-parameters.
+clamp shortens the transition), how far the TIP125 β poles actually derate at the 12 mA
+minimum bias (bounded by the LB corner, but Fig. 7 is specified at 3 A), and thermal drift
+of the TIP125 parameters.
