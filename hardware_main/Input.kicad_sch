@@ -3365,7 +3365,7 @@
 				)
 			)
 		)
-		(property "Value" "ACM4520-901-2P-T000"
+		(property "Value" "DLW5BTM102TQ2L"
 			(at 145.923 110.49 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3375,7 +3375,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LibEigen:ACM4520_TDK"
+		(property "Footprint" "Inductor_SMD:L_CommonModeChoke_Murata_DLW5BTMxxxSQ2x_5x5mm"
 			(at 146.05 99.06 0)
 			(hide yes)
 			(show_name no)
