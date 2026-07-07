@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Chivo+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/dseg7-classic/400.css" rel="stylesheet">
+<style>
+  body { margin:0; background:#0c0e11; }
+  a { color:#54e0ff; text-decoration:none; }
+  a:hover { color:#8bedff; }
+</style>
+</helmet>
+
+<section style="min-width:1240px;padding:44px 48px 80px;background:#0c0e11;font-family:'Chivo Mono',ui-monospace,monospace;color:#c7d0d8;box-sizing:border-box;">
+
+  <!-- header -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;border-bottom:1px solid #23282e;padding-bottom:18px;margin-bottom:34px;">
+    <div>
+      <div style="font-size:11px;letter-spacing:3px;color:#5c6670;text-transform:uppercase;margin-bottom:8px;">2-Channel Power Supply · Display Concept</div>
+      <h1 style="margin:0;font-family:'Barlow Semi Condensed',sans-serif;font-weight:700;font-size:34px;letter-spacing:.5px;color:#eef3f7;">256 × 64 Monochrome OLED — Layout Study</h1>
+    </div>
+    <div style="text-align:right;font-size:11px;line-height:1.7;color:#7a838c;letter-spacing:.5px;">
+      <div>3.2&#8243; diagonal · cyan phosphor</div>
+      <div>CH1 &amp; CH2 side-by-side · 128 px each</div>
+      <div>actual big · set small · always visible</div>
+    </div>
+  </div>
+
+  <!-- turn 1: three numeral-style options -->
+  <div style="display:flex;flex-wrap:wrap;gap:40px;">
+
+    <!-- 1a -->
+    <div id="1a" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;background:#54e0ff;color:#04141a;padding:3px 9px;border-radius:3px;">1a</span>
+        <div>
+          <div style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:19px;color:#eef3f7;letter-spacing:.4px;">Seven-segment</div>
+          <div style="font-size:11px;color:#7a838c;">Classic lab-instrument readout · lit segments only</div>
+        </div>
+      </div>
+      <div style="padding:16px;background:linear-gradient(#1a1e23,#101317);border:1px solid #2b3138;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.45),inset 0 1px 0 #33393f;width:1056px;box-sizing:border-box;">
+        <div style="width:1024px;height:256px;position:relative;overflow:hidden;border-radius:4px;background:#04070a;box-shadow:inset 0 0 0 1px #000, inset 0 0 22px rgba(0,0,0,.9);">
+          <div style="width:256px;height:64px;transform:scale(4);transform-origin:top left;"><dc-import name="OledScreen" font="'DSEG7 Classic', ui-monospace, monospace" tint="{{ tint }}" glow="{{ glow }}" grid="{{ grid }}" hint-size="256px,64px" style="display:block;"></dc-import></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:10px;letter-spacing:1.5px;color:#5c6670;text-transform:uppercase;">Actual size</span>
+        <div style="padding:5px;background:#16191d;border:1px solid #2b3138;border-radius:5px;">
+          <div style="width:256px;height:64px;position:relative;overflow:hidden;border-radius:2px;background:#04070a;">
+            <dc-import name="OledScreen" font="'DSEG7 Classic', ui-monospace, monospace" tint="{{ tint }}" glow="{{ glow }}" grid="{{ grid }}" hint-size="256px,64px" style="display:block;"></dc-import>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1b -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;background:#54e0ff;color:#04141a;padding:3px 9px;border-radius:3px;">1b</span>
+        <div>
+          <div style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:19px;color:#eef3f7;letter-spacing:.4px;">Pixel / bitmap</div>
+          <div style="font-size:11px;color:#7a838c;">Native embedded font · matches the panel's pixel grid</div>
+        </div>
+      </div>
+      <div style="padding:16px;background:linear-gradient(#1a1e23,#101317);border:1px solid #2b3138;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.45),inset 0 1px 0 #33393f;width:1056px;box-sizing:border-box;">
+        <div style="width:1024px;height:256px;position:relative;overflow:hidden;border-radius:4px;background:#04070a;box-shadow:inset 0 0 0 1px #000, inset 0 0 22px rgba(0,0,0,.9);">
+          <div style="width:256px;height:64px;transform:scale(4);transform-origin:top left;"><dc-import name="OledScreen" font="'Silkscreen', monospace" tint="{{ tint }}" glow="{{ glow }}" grid="{{ grid }}" hint-size="256px,64px" style="display:block;"></dc-import></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:10px;letter-spacing:1.5px;color:#5c6670;text-transform:uppercase;">Actual size</span>
+        <div style="padding:5px;background:#16191d;border:1px solid #2b3138;border-radius:5px;">
+          <div style="width:256px;height:64px;position:relative;overflow:hidden;border-radius:2px;background:#04070a;">
+            <dc-import name="OledScreen" font="'Silkscreen', monospace" tint="{{ tint }}" glow="{{ glow }}" grid="{{ grid }}" hint-size="256px,64px" style="display:block;"></dc-import>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1c -->
+    <div id="1c" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;background:#54e0ff;color:#04141a;padding:3px 9px;border-radius:3px;">1c</span>
+        <div>
+          <div style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:19px;color:#eef3f7;letter-spacing:.4px;">Clean digits</div>
+          <div style="font-size:11px;color:#7a838c;">Modern condensed sans · maximum legibility per pixel</div>
+        </div>
+      </div>
+      <div style="padding:16px;background:linear-gradient(#1a1e23,#101317);border:1px solid #2b3138;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.45),inset 0 1px 0 #33393f;width:1056px;box-sizing:border-box;">
+        <div style="width:1024px;height:256px;position:relative;overflow:hidden;border-radius:4px;background:#04070a;box-shadow:inset 0 0 0 1px #000, inset 0 0 22px rgba(0,0,0,.9);">
+          <div style="width:256px;height:64px;transform:scale(4);transform-origin:top left;"><dc-import name="OledScreen" font="'Barlow Semi Condensed', sans-serif" tint="{{ tint }}" glow="{{ glow }}" grid="{{ grid }}" hint-size="256px,64px" style="display:block;"></dc-import></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:10px;letter-spacing:1.5px;color:#5c6670;text-transform:uppercase;">Actual size</span>
+        <div style="padding:5px;background:#16191d;border:1px solid #2b3138;border-radius:5px;">
+          <div style="width:256px;height:64px;position:relative;overflow:hidden;border-radius:2px;background:#04070a;">
+            <dc-import name="OledScreen" font="'Barlow Semi Condensed', sans-serif" tint="{{ tint }}" glow="{{ glow }}" grid="{{ grid }}" hint-size="256px,64px" style="display:block;"></dc-import>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- legend -->
+  <div style="margin-top:44px;padding-top:22px;border-top:1px solid #23282e;display:flex;flex-wrap:wrap;gap:40px;font-size:12px;color:#8a939c;max-width:1100px;line-height:1.6;">
+    <div style="max-width:330px;">
+      <div style="color:#eef3f7;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:15px;margin-bottom:6px;letter-spacing:.4px;">Reading each channel</div>
+      Large rows are the live measured <b style="color:#c7d0d8;">Voltage</b> and <b style="color:#c7d0d8;">Current</b>. Power sits top-right; the <span style="color:#54e0ff;">SET</span> strip carries the target V / A limits — always shown, never hidden.
+    </div>
+    <div style="max-width:330px;">
+      <div style="color:#eef3f7;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:15px;margin-bottom:6px;letter-spacing:.4px;">Resolution shown</div>
+      V 0–35.000 (3 dp) · A 0–2.0000 (4 dp) · P 0–70.00 W. Set values step coarser: 35.00 V / 2.000 A. The sample shows CH1 in voltage-limit and CH2 clamped at its 2.000 A current limit.
+    </div>
+    <div style="max-width:330px;">
+      <div style="color:#eef3f7;font-family:'Barlow Semi Condensed',sans-serif;font-weight:600;font-size:15px;margin-bottom:6px;letter-spacing:.4px;">Tweaks</div>
+      Use the panel to switch phosphor <b style="color:#c7d0d8;">tint</b> (cyan / white / amber), dial the pixel <b style="color:#c7d0d8;">glow</b>, or overlay the OLED <b style="color:#c7d0d8;">pixel grid</b>. Compare options <a href="#1a">1a</a> / <a href="#1b">1b</a> / <a href="#1c">1c</a>.
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;tint&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#54e0ff&quot;, &quot;options&quot;: [&quot;#54e0ff&quot;, &quot;#eaf6ff&quot;, &quot;#ffb347&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Display&quot;},
+  &quot;glow&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 3, &quot;min&quot;: 0, &quot;max&quot;: 6, &quot;step&quot;: 1, &quot;unit&quot;: &quot;px&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Display&quot;},
+  &quot;grid&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Display&quot;}
+}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tint: this.props.tint || '#54e0ff',
+      glow: this.props.glow ?? 3,
+      grid: this.props.grid ?? false
+    };
+  }
+}
+</script>
+</body>
+</html>
