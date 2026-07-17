@@ -33,7 +33,7 @@
 
 /* UART to the Brain is USART0 on PB2(TX)/PB3(RX) -> the 'Serial' object */
 #define BRAIN_UART      Serial
-#define BRAIN_BAUD      1000000UL   /* 1 Mbps; exact at F_CPU=20 MHz (BAUD reg = 80) */
+#define BRAIN_BAUD      1000000UL   /* 1 Mbps; exact at F_CPU=16 MHz (BAUD reg = 64) */
 
 /* ------------------------------------------------------------------ */
 /* NTC thermistor (10k, B=3380K, beta model)                          */
