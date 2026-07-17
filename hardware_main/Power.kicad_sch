@@ -4527,25 +4527,25 @@
 		(fields_autoplaced yes)
 		(uuid "cb1e736c-0f41-442c-a7ab-db40b25762e2")
 		(property "Reference" "R1004"
-			(at 148.59 118.1101 0)
+			(at 153.67 115.5699 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right)
 			)
 		)
-		(property "Value" "###"
-			(at 148.59 115.5701 0)
+		(property "Value" "3,9k"
+			(at 153.67 118.1099 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
+				(justify right)
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"

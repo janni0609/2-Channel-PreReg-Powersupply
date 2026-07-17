@@ -5892,7 +5892,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "xx"
+		(property "Value" "220"
 			(at 87.63 163.8299 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6067,7 +6067,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C"
+		(property "Value" "100n"
 			(at 264.16 143.5099 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7109,7 +7109,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "xx"
+		(property "Value" "220"
 			(at 24.13 163.8299 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8168,7 +8168,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C"
+		(property "Value" "100n"
 			(at 185.42 129.5399 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8901,7 +8901,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "xx"
+		(property "Value" "220"
 			(at 101.6 163.8299 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9674,7 +9674,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "xx"
+		(property "Value" "220"
 			(at 54.61 163.8299 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9915,7 +9915,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "xx"
+		(property "Value" "220"
 			(at 116.84 163.8299 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10790,7 +10790,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "xx"
+		(property "Value" "220"
 			(at 39.37 163.8299 0)
 			(show_name no)
 			(do_not_autoplace no)
