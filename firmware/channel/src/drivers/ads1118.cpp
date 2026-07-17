@@ -16,9 +16,13 @@
 
 #define ADS_DR_128SPS   0b100u                /* 128 SPS (~7.8 ms)            */
 
-/* MUX codes for the two differential pairs. */
-#define ADS_MUX_V       0b000u                /* AIN0(P) - AIN1(N)            */
-#define ADS_MUX_I       0b011u                /* AIN2(P) - AIN3(N)            */
+/* MUX codes for the two measurement inputs. Both sense signals are referenced
+ * to GND: AIN0 carries the 0..2.5 V voltage-sense and AIN1 is tied to GND;
+ * AIN2 carries the current-sense and AIN3 is tied to GND. Reading each as a
+ * differential pair against its grounded neighbour yields the (positive)
+ * single-ended signal. */
+#define ADS_MUX_V       0b000u                /* AIN0(P) - AIN1(N=GND)        */
+#define ADS_MUX_I       0b011u                /* AIN2(P) - AIN3(N=GND)        */
 
 /* PGA index -> full-scale volts. */
 const float kAdsFsVolts[8] = {
@@ -51,10 +55,14 @@ void ads1118_start(AdsChannel ch, uint8_t pga)
     spi_bus_xfer(SPI_DEV_ADC, tx, nullptr, 2);   /* loads config, starts conv */
 }
 
-int16_t ads1118_read(AdsChannel ch, uint8_t pga)
+int16_t ads1118_read()
 {
-    const uint16_t cfg = build_config(ch, pga);  /* re-arm same channel */
-    uint8_t tx[2] = { (uint8_t)(cfg >> 8), (uint8_t)cfg };
+    /* DIN = 0x0000 keeps the NOP field invalid: the Config register is left
+     * untouched and no new conversion starts. Re-writing the config here
+     * (with SS set) would restart the old channel; the mux change written by
+     * the next ads1118_start() would then be ignored until that conversion
+     * finished, and every result would belong to the previous channel. */
+    uint8_t tx[2] = { 0, 0 };
     uint8_t rx[2] = { 0, 0 };
     spi_bus_xfer(SPI_DEV_ADC, tx, rx, 2);
     return (int16_t)(((uint16_t)rx[0] << 8) | rx[1]);

@@ -78,7 +78,7 @@ void measure_task()
         break;
 
     case M_READ: {
-        const int16_t code = ads1118_read(s_ch, s_pga[s_ch]);
+        const int16_t code = ads1118_read();
         process(s_ch, code);
         s_ch = (s_ch == ADS_CH_V) ? ADS_CH_I : ADS_CH_V;
         s_phase = M_START;
