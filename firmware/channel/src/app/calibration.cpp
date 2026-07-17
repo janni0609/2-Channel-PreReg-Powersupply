@@ -16,19 +16,33 @@ struct CalPoints {
 };
 static CalPoints s_points[CAL_COUNT];
 
-/* ---- Compile-time defaults ---------------------------------------------- */
-/* Set paths: map engineering value directly to DAC code assuming the value is
- * the desired DAC output in mV (0..2440 -> 0..4095). This is a placeholder
- * until a real 2-point calibration ties it to the supply's output units. */
-static const float kDefaultSetGain = (float)DAC_MAX_CODE / (DAC_FULLSCALE_V * 1000.0f);
+/* ---- Compile-time defaults (uncalibrated behaviour) --------------------- */
+/* Nominal channel transfer functions used until a 2-point calibration overrides
+ * them. Vout/Iout are the supply OUTPUT; Vset/Iset are the DAC output voltage:
+ *
+ *     Vout = 15 * Vset        ->  Vset = Vout / 15
+ *     Iout = Iset / 1.2       ->  Iset = Iout * 1.2
+ *
+ * The ADC is assumed to sense the same feedback nodes the CV/CC loops regulate
+ * to, so the measure paths use the inverse of the same ratios. At full output
+ * (36.6 V / 2 A) both sense nodes stay inside the ADC's +-4.096 V window. */
+#define DEFAULT_V_GAIN   15.0f   /* Vout per volt of DAC Vset                 */
+#define DEFAULT_I_DIV    1.2f    /* Iset(V) per amp of Iout; Iout = Iset/1.2  */
+
+/* Set paths: OUTPUT engineering value (mV / mA) -> DAC code. */
+static const float kBaseCodePerVolt  = (float)DAC_MAX_CODE / DAC_FULLSCALE_V;
+static const float kDefaultVSetGain  = kBaseCodePerVolt / (DEFAULT_V_GAIN * 1000.0f);
+static const float kDefaultISetGain  = (kBaseCodePerVolt * DEFAULT_I_DIV) / 1000.0f;
+/* Meas paths: ADC volts -> OUTPUT engineering value (mV / mA). */
+static const float kDefaultVMeasGain = DEFAULT_V_GAIN * 1000.0f;          /* mV per ADC volt */
+static const float kDefaultIMeasGain = (1.0f / DEFAULT_I_DIV) * 1000.0f;  /* mA per ADC volt */
 
 static void load_defaults()
 {
-    s_store.coeff[CAL_VSET]  = { kDefaultSetGain, 0.0f };
-    s_store.coeff[CAL_ISET]  = { kDefaultSetGain, 0.0f };
-    /* Meas paths: volts-at-ADC -> mV/mA. 1000 is a neutral placeholder. */
-    s_store.coeff[CAL_VMEAS] = { 1000.0f, 0.0f };
-    s_store.coeff[CAL_IMEAS] = { 1000.0f, 0.0f };
+    s_store.coeff[CAL_VSET]  = { kDefaultVSetGain,  0.0f };
+    s_store.coeff[CAL_ISET]  = { kDefaultISetGain,  0.0f };
+    s_store.coeff[CAL_VMEAS] = { kDefaultVMeasGain, 0.0f };
+    s_store.coeff[CAL_IMEAS] = { kDefaultIMeasGain, 0.0f };
 }
 
 void cal_init()
@@ -88,10 +102,13 @@ bool cal_commit(uint8_t target)
 void cal_reset(uint8_t target)
 {
     if (target >= CAL_COUNT) return;
-    if (target == CAL_VSET || target == CAL_ISET)
-        s_store.coeff[target] = { kDefaultSetGain, 0.0f };
-    else
-        s_store.coeff[target] = { 1000.0f, 0.0f };
+    switch (target) {
+    case CAL_VSET:  s_store.coeff[target] = { kDefaultVSetGain,  0.0f }; break;
+    case CAL_ISET:  s_store.coeff[target] = { kDefaultISetGain,  0.0f }; break;
+    case CAL_VMEAS: s_store.coeff[target] = { kDefaultVMeasGain, 0.0f }; break;
+    case CAL_IMEAS: s_store.coeff[target] = { kDefaultIMeasGain, 0.0f }; break;
+    default: return;
+    }
     storage_save(&s_store);
 }
 

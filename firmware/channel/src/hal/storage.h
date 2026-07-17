@@ -10,7 +10,10 @@
 #include "protocol.h"      /* CAL_COUNT */
 
 #define CAL_STORE_MAGIC    0x43414C31UL  /* 'C''A''L''1' */
-#define CAL_STORE_VERSION  1
+/* v2: default (uncalibrated) coefficients changed to the real channel transfer
+ * functions (Vout = 15*Vset, Iout = Iset/1.2). Bumping the version invalidates
+ * any EEPROM seeded with the old placeholder defaults so it is re-seeded. */
+#define CAL_STORE_VERSION  2
 
 struct CalStore {
     uint32_t magic;
