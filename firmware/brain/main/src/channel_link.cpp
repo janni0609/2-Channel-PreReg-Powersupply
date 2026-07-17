@@ -11,6 +11,15 @@
 // default change can't silently move the link.
 #define LINK_BAUD   1000000UL   // 1 Mbps, matches channel config.h BRAIN_BAUD
 
+// RP2350 UART RX ring-buffer size (bytes). Precautionary: the default core
+// buffer is only 32 bytes, and the blocking per-byte SSD1322 flush in loop()
+// stalls UART draining for milliseconds at a time; 256 bytes buffers ~12
+// telemetry frames of stall so a long block can never overrun the ring. (In
+// practice overflow was never observed at 32 either -- the "Comm FAIL" blips
+// were a timeout-underflow bug in channel_link_task(), fixed there -- but the
+// headroom is cheap insurance for this blocking-flush design.)
+#define LINK_RX_FIFO_BYTES  256
+
 #define CH1_TX_PIN  0
 #define CH1_RX_PIN  1
 #define CH2_TX_PIN  4
@@ -184,10 +193,13 @@ void channel_link_init()
     memset(s_rx,     0, sizeof(s_rx));
     for (int i = 0; i < LINK_COUNT; i++) s_rx[i].st = RX_SOF;
 
+    // Enlarge the RX ring *before* begin() (the core allocates it there).
+    Serial1.setFIFOSize(LINK_RX_FIFO_BYTES);
     Serial1.setTX(CH1_TX_PIN);
     Serial1.setRX(CH1_RX_PIN);
     Serial1.begin(LINK_BAUD);
 
+    Serial2.setFIFOSize(LINK_RX_FIFO_BYTES);
     Serial2.setTX(CH2_TX_PIN);
     Serial2.setRX(CH2_RX_PIN);
     Serial2.begin(LINK_BAUD);
@@ -195,17 +207,28 @@ void channel_link_init()
 
 void channel_link_task()
 {
-    const uint32_t now = millis();
-
     for (uint8_t ch = 0; ch < LINK_COUNT; ch++) {
+        // Poll (and clear) the core's RX-overflow flag every pass; it latches
+        // whenever the ring filled and bytes were dropped since the last call.
+        // overflow() lives on the concrete SerialUART, not the HardwareSerial
+        // base that s_uart[] is typed as; the pointers are always SerialUARTs.
+        if (static_cast<SerialUART *>(s_uart[ch])->overflow())
+            s_status[ch].rxOverflows++;
+
         // Bounded drain so a flood on one link can't starve the UI loop.
         int budget = 64;
         while (budget-- > 0 && s_uart[ch]->available())
             rx_byte(ch, (uint8_t)s_uart[ch]->read());
 
         // Link-timeout: no valid telemetry within the window -> mark down.
-        if (s_status[ch].linkUp &&
-            (uint32_t)(now - s_status[ch].lastRxMs) > LINK_TIMEOUT_MS) {
+        // Sample the clock *after* draining: a frame parsed just above set
+        // lastRxMs to a millis() that can be a tick later than any value read
+        // at the top of this call. With unsigned math a lastRxMs in that tiny
+        // "future" underflows to ~4e9 and spuriously trips the timeout (brief
+        // Comm FAIL on a healthy link). Signed elapsed reads ~0 in that case
+        // and only goes positive on a genuine gap.
+        const int32_t sinceRx = (int32_t)(millis() - s_status[ch].lastRxMs);
+        if (s_status[ch].linkUp && sinceRx > (int32_t)LINK_TIMEOUT_MS) {
             s_status[ch].linkUp = false;
         }
     }

@@ -40,6 +40,7 @@ struct ChannelStatus {
     uint32_t lastRxMs;    /* millis() of the last valid frame             */
     uint32_t framesRx;    /* total valid frames received                 */
     uint32_t crcErrors;   /* frames dropped on a bad CRC                  */
+    uint32_t rxOverflows; /* times the UART RX buffer overflowed (drops)  */
 
     /* --- last async notifications --- */
     uint8_t  lastEvent;       /* last EVT_* code (0 = none yet)           */
