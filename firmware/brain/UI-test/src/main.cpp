@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <SSD1322.h>
+#include <Wire.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -16,17 +17,57 @@
 #define PIN_DC   12
 #define PIN_CS   13
 
-// ── Rotary encoder (temporary direct wiring; button moves to the IO expander
-// later). The ROT signals are active-low, so the inputs use pull-ups; a closed
-// contact pulls the pin down. GPIO17 is just held high for the current hookup.
+// ── Rotary encoder quadrature (direct wiring). The ROT signals are active-low,
+// so the inputs use pull-ups; a closed contact pulls the pin down. GPIO17 is just
+// held high for the current hookup. The encoder PUSH button no longer lives here —
+// it moved to the MCP23008 I/O expander (GP0), read over I2C below.
 //   ROT_A  -> GPIO14   quadrature A   (PIO in-base; A/B must be consecutive)
 //   ROT_B  -> GPIO15   quadrature B
-//   ROT_BT -> GPIO16   push button (digit select), low = pressed
 //   GPIO17 -> driven high
 #define PIN_ENC_A   14
 #define PIN_ENC_B   15
-#define PIN_ENC_BT  16
 #define PIN_ENC_PWR 17
+
+// ── Front-panel buttons + buzzer on an MCP23008 I/O expander (I2C1) ────────────
+// The RP2350 exposes I2C1 SDA/SCL on GPIO6/GPIO7 (I2C0 cannot reach those pins),
+// so the expander lives on the Wire1 peripheral. Its INT pin flags any button
+// change on GPIO8; we read GPIO to identify the change and clear the interrupt.
+//   SDA -> GPIO6   (I2C1 SDA)
+//   SCL -> GPIO7   (I2C1 SCL)
+//   INT -> GPIO8   (active-low, open-drain w/ external pull-up; low on change)
+#define PIN_MCP_SDA 6
+#define PIN_MCP_SCL 7
+#define PIN_MCP_INT 8
+
+// A2:A1:A0 strapped low → 7-bit slave address 0x20.
+static const uint8_t MCP_ADDR = 0x20;
+
+// MCP23008 register addresses (Table 1-2).
+#define MCP_IODIR   0x00
+#define MCP_IPOL    0x01
+#define MCP_GPINTEN 0x02
+#define MCP_DEFVAL  0x03
+#define MCP_INTCON  0x04
+#define MCP_IOCON   0x05
+#define MCP_GPPU    0x06
+#define MCP_INTF    0x07
+#define MCP_INTCAP  0x08
+#define MCP_GPIO    0x09
+#define MCP_OLAT    0x0A
+
+// Expander pin map (bit position = GPn). All buttons are active-low with pull-ups;
+// GP4 is the active-high buzzer output. Bits are named by front-panel function.
+#define MCP_ENC_BT (1 << 0)   // GP0  encoder push button (digit select / menu)
+#define MCP_CH2_I  (1 << 1)   // GP1  select CH2 current setpoint for editing
+#define MCP_CH2_ON (1 << 2)   // GP2  CH2 output toggle (placeholder)
+#define MCP_CH2_V  (1 << 3)   // GP3  select CH2 voltage setpoint for editing
+#define MCP_BUZZER (1 << 4)   // GP4  buzzer (active-high output)
+#define MCP_CH1_I  (1 << 5)   // GP5  select CH1 current setpoint for editing
+#define MCP_CH1_V  (1 << 6)   // GP6  select CH1 voltage setpoint for editing
+#define MCP_CH1_ON (1 << 7)   // GP7  CH1 output toggle (placeholder)
+
+// All pins except the buzzer (GP4) are button inputs.
+static const uint8_t MCP_BTN_MASK = (uint8_t)~MCP_BUZZER;   // 0xEF
 
 SSD1322 display(SPI1, PIN_CS, PIN_DC, PIN_RES, PIN_SCK, PIN_MOSI);
 
@@ -43,7 +84,7 @@ static PIO     encPio       = pio0;
 static int     encSm        = -1;
 static int32_t encLastCount = 0;   // PIO count at the previous serviceEncoder()
 static int     encAccum     = 0;   // edges accumulated toward the next detent
-static const int ENC_SIGN   = -1;  // flip sign if rotation goes the wrong way
+static const int ENC_SIGN   = 1;  // flip sign if rotation goes the wrong way
 
 static void encoderInit() {
     // Pads: inputs with pull-ups (signals are active-low). The PIO IN path
@@ -52,7 +93,6 @@ static void encoderInit() {
     digitalWrite(PIN_ENC_PWR, HIGH);
     pinMode(PIN_ENC_A,  INPUT_PULLUP);
     pinMode(PIN_ENC_B,  INPUT_PULLUP);
-    pinMode(PIN_ENC_BT, INPUT_PULLUP);
 
     encSm = pio_claim_unused_sm(encPio, true);
     pio_add_program(encPio, &quadrature_encoder_program);  // needs .origin 0
@@ -68,6 +108,82 @@ static int encoderReadSteps() {
     int steps = encAccum / 4;
     encAccum -= steps * 4;
     return steps;
+}
+
+// ── MCP23008 I/O expander (front-panel buttons + buzzer) ───────────────────────
+// Single-register reads/writes over I2C1. The expander is configured for
+// interrupt-on-change against the previous pin state (INTCON = 0), so any button
+// edge pulses INT; serviceMcpButtons() reads GPIO to see which pins changed and to
+// clear the interrupt, then edge-detects presses in software with a debounce.
+
+static uint8_t mcpOlat      = 0;   // shadow of the output latch (only GP4 matters)
+static uint8_t g_btnPressed = 0;   // debounced pressed bitmask (bit set = pressed)
+
+static void mcpWrite(uint8_t reg, uint8_t val) {
+    Wire1.beginTransmission(MCP_ADDR);
+    Wire1.write(reg);
+    Wire1.write(val);
+    Wire1.endTransmission();
+}
+
+static uint8_t mcpRead(uint8_t reg) {
+    Wire1.beginTransmission(MCP_ADDR);
+    Wire1.write(reg);
+    Wire1.endTransmission(false);                 // repeated start (no bus release)
+    Wire1.requestFrom((uint8_t)MCP_ADDR, (uint8_t)1);
+    return Wire1.available() ? (uint8_t)Wire1.read() : 0xFF;
+}
+
+// Drive the buzzer (GP4). Kept as a shadow write so the input pins are untouched.
+static void mcpSetBuzzer(bool on) {
+    if (on) mcpOlat |= MCP_BUZZER;
+    else    mcpOlat &= (uint8_t)~MCP_BUZZER;
+    mcpWrite(MCP_OLAT, mcpOlat);
+}
+
+static void mcpInit() {
+    Wire1.setSDA(PIN_MCP_SDA);
+    Wire1.setSCL(PIN_MCP_SCL);
+    Wire1.begin();
+    Wire1.setClock(400000);                       // 400 kHz (MCP23008 fast mode)
+
+    mcpWrite(MCP_IODIR,   MCP_BTN_MASK);          // buttons in, GP4 (buzzer) out
+    mcpWrite(MCP_GPPU,    MCP_BTN_MASK);          // pull-ups on the button inputs
+    mcpWrite(MCP_IPOL,    0x00);                  // no inversion; low = pressed
+    mcpWrite(MCP_INTCON,  0x00);                  // compare against previous value
+    mcpWrite(MCP_DEFVAL,  0x00);
+    mcpWrite(MCP_IOCON,   0x04);                  // INT open-drain (ODR=1); ext. pull-up
+    mcpWrite(MCP_GPINTEN, MCP_BTN_MASK);          // interrupt-on-change for buttons
+    mcpOlat = 0x00;
+    mcpWrite(MCP_OLAT,    mcpOlat);               // buzzer off
+
+    pinMode(PIN_MCP_INT, INPUT);                  // hardware pull-up holds INT high
+    (void)mcpRead(MCP_GPIO);                      // clear any power-on interrupt
+
+    uint8_t back = mcpRead(MCP_IODIR);            // bring-up sanity check
+    Serial.print("MCP23008 IODIR readback: 0x");
+    Serial.println(back, HEX);
+    if (back != MCP_BTN_MASK)
+        Serial.println("MCP23008 not responding as expected!");
+}
+
+// ── Buzzer (non-blocking) ──────────────────────────────────────────────────────
+// beep() arms a timed tone; serviceBuzzer() turns it off when the deadline passes.
+// No caller yet — the buzzer stays silent until a beep is requested (e.g. gated by
+// the UI "Beeper" setting).
+static uint32_t buzzerOffMs = 0;
+
+static void beep(uint16_t ms) __attribute__((unused));
+static void beep(uint16_t ms) {
+    mcpSetBuzzer(true);
+    buzzerOffMs = millis() + ms;
+}
+
+static void serviceBuzzer() {
+    if (buzzerOffMs && (int32_t)(millis() - buzzerOffMs) >= 0) {
+        mcpSetBuzzer(false);
+        buzzerOffMs = 0;
+    }
 }
 
 // ── Dual-channel main readout — layout from design_handoff_oled_psu ────────────
@@ -130,23 +246,42 @@ struct Channel {
     float setI;
 };
 
-// ── Set-value editing (CH1 voltage only until the channel/V-I select buttons
-// exist) ────────────────────────────────────────────────────────────────────────
-// The set voltage is edited in centivolts so digit steps are exact. Display is
-// zero-padded "05.00V" so every digit has a fixed column for the cursor.
-// selDigit indexes the four editable digits: 0=tens 1=ones 2=tenths 3=hundredths.
-static const int32_t SETV_MAX_CV = 3000;                     // 30.00 V
-static const int32_t DIGIT_STEP_CV[4] = { 1000, 100, 10, 1 };
-static int32_t setV1_cV = 1250;                              // mirrors ch1.setV
-static int     selDigit = 3;                                 // start on hundredths
+// ── Set-value editing (per-channel voltage + current) ──────────────────────────
+// Setpoints are held as integers so digit steps stay exact: voltage in centivolts
+// (0..3600 = 36.00 V), current in milliamps (0..2000 = 2.000 A). The front-panel
+// CHx_V / CHx_I buttons pick which of the four setpoints the encoder edits; the
+// encoder push selects the digit and rotation steps it. selDigit indexes the four
+// editable digits — voltage: tens/ones/tenths/hundredths; current: ones and the
+// three decimals. Displays are zero-padded so each digit has a fixed cursor column.
+static const int32_t SETV_MAX_CV = 3600;                     // 36.00 V
+static const int32_t SETI_MAX_MA = 2000;                     // 2.000 A
+static const int32_t V_DIGIT_STEP_CV[4] = { 1000, 100, 10, 1 };
+static const int32_t I_DIGIT_STEP_MA[4] = { 1000, 100, 10, 1 };
 
-// Set-voltage field geometry: 6 chars "05.00V" at 6 px pitch, centred on local
-// x=54 like the original SET strip. Row is 8 px: 7 font rows + 1 underline row.
-static const int SETV_X0 = 54 - 3 * 6;
-static const int SETV_W  = 6 * 6;
+static int32_t setV_cV[2] = { 1250, 500 };                   // CH1 12.50 V, CH2 5.00 V
+static int32_t setI_mA[2] = { 1000, 2000 };                  // CH1 1.000 A, CH2 2.000 A
+
+enum EditParam : uint8_t { EDIT_V, EDIT_I };
+static int       editCh    = 0;                              // 0 = CH1, 1 = CH2
+static EditParam editParam = EDIT_V;                         // V or I setpoint
+static int       selDigit  = 3;                              // active digit (0..3)
+
+// UI page state (the settings menu handlers live further down; declared here so
+// the set-strip drawing knows to show the digit cursor only on the main page).
+enum UiPage : uint8_t { PAGE_MAIN, PAGE_SETTINGS, PAGE_SUBMENU };
+static UiPage uiPage = PAGE_MAIN;
+
+// Set-field geometry: 6 chars ("05.00V" / "2.000A") at 6 px pitch, 8 px row (7 font
+// rows + 1 underline). The voltage field is centred on local x=54 as before; the
+// current field is right-anchored to x=121 like the original SET strip.
+static const int SETV_X0 = 54 - 3 * 6;    // 36
+static const int SETV_W  = 6 * 6;         // 36
+static const int SETI_X0 = 121 + 1 - 6 * 6;   // 86 (right edge ≈ 121)
+static const int SETI_W  = 6 * 6;         // 36
 static const int SETV_H  = 8;
-// Char cell of each editable digit inside "05.00V" (skips the decimal point).
-static const uint8_t DIGIT_POS[4] = { 0, 1, 3, 4 };
+// Char cell of each editable digit (skips the '.' and the trailing unit letter).
+static const uint8_t DIGIT_POS_V[4] = { 0, 1, 3, 4 };   // "05.00V"
+static const uint8_t DIGIT_POS_I[4] = { 0, 2, 3, 4 };   // "2.000A"
 
 // Right-align a 5x7 string so its rightmost pixel sits near local x=rightX (+CX).
 static void drawText5x7Right(int rightX, int y, const char *s, uint8_t fg) {
@@ -200,7 +335,7 @@ void selfTest() {
 
 // Elements that never change while a channel is displayed. Called once per panel.
 void drawStatic(const Channel &ch, int xOff) {
-    char buf[12];
+    (void)ch;
 
     // Channel label (top-left).
     display.drawText(xOff + 6, Y_HDR_TOP, xOff == 0 ? "CH1" : "CH2", G_CHLBL, 0);
@@ -212,29 +347,47 @@ void drawStatic(const Channel &ch, int xOff) {
     // Separator above the SET strip.
     display.drawLine(xOff + 5, Y_SEP, xOff + 121, Y_SEP, G_LINE);
 
-    // SET strip: "SET"  |  set V (drawn by drawSetVolt)  |  set I (right).
+    // SET strip label; the V and I fields are drawn by drawSetStrip().
     display.drawText(xOff + 6, Y_SET_TOP, "SET", G_SET, 0);
-
-    snprintf(buf, sizeof(buf), "%.3fA", ch.setI);          // e.g. "1.000A"
-    drawText5x7Right(xOff + 121, Y_SET_TOP, buf, G_SET);
 }
 
-// Draw the set-voltage field "05.00V" with an optional digit cursor: the digit
-// DIGIT_POS[cursor] is drawn bright with an underline; cursor=-1 draws the plain
-// field (used for the non-editable channel). Framebuffer only — caller flushes.
-static void drawSetVolt(int xOff, float setV, int cursor) {
-    char buf[8], cs[2] = { 0, 0 };
-    snprintf(buf, sizeof(buf), "%05.2fV", setV);           // e.g. "05.00V"
-
-    display.fillRect(xOff + SETV_X0, Y_SET_TOP, SETV_W, SETV_H, 0);
-    int curPos = (cursor >= 0) ? DIGIT_POS[cursor] : -1;
+// Draw one editable set field ("05.00V" or "2.000A") at local x0, clearing the
+// cell first. When cursor >= 0 the digit at digitPos[cursor] is drawn bright with
+// an underline; cursor = -1 draws the plain field. Framebuffer only — caller flushes.
+static void drawSetField(int xOff, int x0, const char *buf,
+                         const uint8_t *digitPos, int cursor) {
+    char cs[2] = { 0, 0 };
+    display.fillRect(xOff + x0, Y_SET_TOP, SETV_W, SETV_H, 0);
+    int curPos = (cursor >= 0) ? digitPos[cursor] : -1;
     for (int i = 0; buf[i]; i++) {
-        int x = xOff + SETV_X0 + i * 6;
+        int x = xOff + x0 + i * 6;
         cs[0] = buf[i];
         display.drawText(x, Y_SET_TOP, cs, i == curPos ? G_BIG : G_SET, 0);
         if (i == curPos)
             display.drawLine(x, Y_SET_TOP + 7, x + 4, Y_SET_TOP + 7, G_BIG);
     }
+}
+
+// Draw the V and I set fields for channel `ch` (0/1). The digit cursor is shown on
+// whichever field is the active edit target, and only while the main page is up.
+static void drawSetStrip(int ch) {
+    int xOff = ch * 128;
+    char buf[8];
+    bool active = (uiPage == PAGE_MAIN);
+    int vCur = (active && editCh == ch && editParam == EDIT_V) ? selDigit : -1;
+    int iCur = (active && editCh == ch && editParam == EDIT_I) ? selDigit : -1;
+
+    snprintf(buf, sizeof(buf), "%05.2fV", setV_cV[ch] / 100.0f);   // "05.00V"
+    drawSetField(xOff, SETV_X0, buf, DIGIT_POS_V, vCur);
+    snprintf(buf, sizeof(buf), "%.3fA", setI_mA[ch] / 1000.0f);    // "2.000A"
+    drawSetField(xOff, SETI_X0, buf, DIGIT_POS_I, iCur);
+}
+
+// Push both set fields of one channel to the panel.
+static void flushSetStrip(int ch) {
+    int xOff = ch * 128;
+    display.flushRect(xOff + SETV_X0, Y_SET_TOP,
+                      (SETI_X0 + SETI_W) - SETV_X0, SETV_H);
 }
 
 // Redraw the parts that track the measured values: power readout + big V/I.
@@ -267,38 +420,57 @@ Channel ch1 = { 0, 0, 12.50f, 1.000f };
 Channel ch2 = { 0, 0,  5.00f, 2.000f };
 
 // ── Settings menu ───────────────────────────────────────────────────────────────
-// Long-pressing ROT_BT on the main page opens a settings overview with four
-// submenus. Rotation moves the highlight, a short press enters the selected
+// Long-pressing the encoder button on the main page opens a settings overview with
+// several submenus. Rotation moves the highlight, a short press enters the selected
 // submenu, a long press backs out (submenu -> overview -> main page). Submenu
-// values are dummies until the real configuration store exists.
-enum UiPage : uint8_t { PAGE_MAIN, PAGE_SETTINGS, PAGE_SUBMENU };
-static UiPage uiPage = PAGE_MAIN;
-
+// values are dummies until the real configuration store exists. (UiPage/uiPage are
+// declared up with the set-editing state so the readout can use them.)
 struct MenuItem { const char *name; const char *value; };
 
+// Per-channel settings. Channel 2 reuses the same list (the layout is identical;
+// only the underlying data source differs once the channel link is wired in).
+// Values are dummies until the configuration/telemetry store exists.
 static const MenuItem CHANNEL_ITEMS[] = {
-    { "OVP CH1",     "31.0 V"  },
-    { "OVP CH2",     "31.0 V"  },
-    { "OCP CH1",     "2.100 A" },
-    { "OCP CH2",     "2.100 A" },
+    { "Temp",         "24 C"     },   // measured
+    { "Volt",         "12.47 V"  },   // measured
+    { "Curr",         "0.823 A"  },   // measured
+    { "OTP",          "80 C"     },   // setpoint 0-100 C
+    { "DAC state",    "OK"       },
+    { "ADC state",    "OK"       },
+    { "Comm",         "OK"       },   // channel <-> brain link
+    { "Runtime",      "0 h"      },   // read from channel
+    { "Cal values V", "View"     },   // read from channel, displayed
+    { "Cal values I", "View"     },
+    { "Manual Cal V", "Hold"     },   // enter cal procedure (needs confirm)
+    { "Manual Cal I", "Hold"     },
 };
 static const MenuItem FAN_ITEMS[] = {
-    { "Fan mode",    "Auto"    },
-    { "Min speed",   "20 %"    },
-    { "Start temp",  "45 C"    },
-    { "Full temp",   "70 C"    },
-};
-static const MenuItem NETWORK_ITEMS[] = {
-    { "DHCP",        "On"             },
-    { "IP address",  "192.168.1.50"   },
-    { "Netmask",     "255.255.255.0"  },
-    { "Hostname",    "psu-2ch"        },
+    { "Temp Ch1",     "24 C"  },   // measured
+    { "Temp Ch2",     "26 C"  },   // measured
+    { "Temp heatsink","31 C"  },   // measured (brain)
+    { "Temp max",     "31 C"  },   // max of the three above
+    { "SYS OTP",      "85 C"  },   // brain OTP setpoint vs. max temp
+    { "Fan min speed","20 %"  },   // setpoint
+    { "Fan start temp","45 C" },   // setpoint 0-100 C
+    { "Fan max temp", "70 C"  },   // setpoint 0-100 C
 };
 static const MenuItem UI_ITEMS[] = {
-    { "Brightness",  "12/15"   },
-    { "Dim after",   "5 min"   },
-    { "Encoder dir", "Normal"  },
-    { "Key beep",    "Off"     },
+    { "Beeper",      "On"      },
+};
+static const MenuItem NETWORK_ITEMS[] = {
+    { "Status",      "Up"             },   // link + IP (read only)
+    { "MAC address", "A8:61:0A:.."    },   // read only
+    { "DHCP",        "On"             },   // when On, IP/mask/gw are read only
+    { "IP address",  "192.168.1.50"   },
+    { "Netmask",     "255.255.255.0"  },   // CIDR /24
+    { "Gateway",     "192.168.1.1"    },
+    { "Hostname",    "psu-2ch"        },
+    { "Apply",       ""               },   // applies + restarts the interface
+};
+static const MenuItem SYSTEM_ITEMS[] = {
+    { "FW version",   "0.1.0" },
+    { "Remember set", "Yes"   },   // remember set values on restart
+    { "Brain runtime","0 h"   },
 };
 
 struct Submenu {
@@ -307,11 +479,14 @@ struct Submenu {
     const MenuItem *items;
     int             count;
 };
+#define ITEM_COUNT(a) ((int)(sizeof(a) / sizeof((a)[0])))
 static const Submenu SUBMENUS[] = {
-    { "CHANNEL SETTINGS", "Channel Settings", CHANNEL_ITEMS, 4 },
-    { "FAN SETTINGS",     "Fan Settings",     FAN_ITEMS,     4 },
-    { "NETWORK SETTINGS", "Network Settings", NETWORK_ITEMS, 4 },
-    { "UI SETTINGS",      "UI Settings",      UI_ITEMS,      4 },
+    { "CHANNEL 1",    "Channel 1",    CHANNEL_ITEMS, ITEM_COUNT(CHANNEL_ITEMS) },
+    { "CHANNEL 2",    "Channel 2",    CHANNEL_ITEMS, ITEM_COUNT(CHANNEL_ITEMS) },
+    { "TEMP AND FAN", "Temp and Fan", FAN_ITEMS,     ITEM_COUNT(FAN_ITEMS)     },
+    { "UI",           "UI",           UI_ITEMS,      ITEM_COUNT(UI_ITEMS)      },
+    { "NETWORK",      "Network",      NETWORK_ITEMS, ITEM_COUNT(NETWORK_ITEMS) },
+    { "SYSTEM",       "System",       SYSTEM_ITEMS,  ITEM_COUNT(SYSTEM_ITEMS)  },
 };
 static const int SUBMENU_COUNT = (int)(sizeof(SUBMENUS) / sizeof(SUBMENUS[0]));
 
@@ -324,6 +499,25 @@ static int submenuSel  = 0;  // highlighted row inside the open submenu
 static const int MENU_Y0    = 17;   // first item row top
 static const int MENU_DY    = 11;   // row pitch
 static const int MENU_VAL_X = 246;  // right edge of the value column
+static const int MENU_VISIBLE = 4;  // rows that fit on the 64 px panel
+
+// Scroll offset that keeps the selected row inside the visible window. Lists
+// with <= MENU_VISIBLE items never scroll (top stays 0).
+static int menuTop(int sel, int count) {
+    if (count <= MENU_VISIBLE) return 0;
+    int top = sel - MENU_VISIBLE / 2;
+    if (top < 0) top = 0;
+    if (top > count - MENU_VISIBLE) top = count - MENU_VISIBLE;
+    return top;
+}
+
+// Up/down markers at the far right edge when the list scrolls off-window.
+static void drawScrollHints(int top, int count) {
+    if (top > 0)
+        display.drawText(250, MENU_Y0, "^", G_DIM, 0);
+    if (top + MENU_VISIBLE < count)
+        display.drawText(250, MENU_Y0 + (MENU_VISIBLE - 1) * MENU_DY, "v", G_DIM, 0);
+}
 
 // Header + horizontal rule shared by the overview and every submenu.
 static void drawMenuHeader(const char *title) {
@@ -332,27 +526,35 @@ static void drawMenuHeader(const char *title) {
     display.drawLine(5, 13, 250, 13, G_LINE);
 }
 
-// One menu row: ">" marker + name (and optional right-aligned value) with the
-// selected row drawn bright.
-static void drawMenuRow(int row, bool sel, const char *name, const char *value) {
-    int y = MENU_Y0 + row * MENU_DY;
+// One menu row at screen slot `slot` (0..MENU_VISIBLE-1): ">" marker + name
+// (and optional right-aligned value) with the selected row drawn bright.
+static void drawMenuRow(int slot, bool sel, const char *name, const char *value) {
+    int y = MENU_Y0 + slot * MENU_DY;
     if (sel) display.drawText(10, y, ">", G_BIG, 0);
     display.drawText(20, y, name, sel ? G_BIG : G_NUM, 0);
-    if (value) drawText5x7Right(MENU_VAL_X, y, value, sel ? G_BIG : G_DIM);
+    if (value && value[0]) drawText5x7Right(MENU_VAL_X, y, value, sel ? G_BIG : G_DIM);
 }
 
 static void drawSettingsOverview() {
     drawMenuHeader("SETTINGS");
-    for (int i = 0; i < SUBMENU_COUNT; i++)
-        drawMenuRow(i, i == settingsSel, SUBMENUS[i].label, nullptr);
+    int top = menuTop(settingsSel, SUBMENU_COUNT);
+    for (int slot = 0; slot < MENU_VISIBLE && top + slot < SUBMENU_COUNT; slot++) {
+        int i = top + slot;
+        drawMenuRow(slot, i == settingsSel, SUBMENUS[i].label, nullptr);
+    }
+    drawScrollHints(top, SUBMENU_COUNT);
     display.flush();
 }
 
 static void drawSubmenu() {
     const Submenu &m = SUBMENUS[submenuIdx];
     drawMenuHeader(m.title);
-    for (int i = 0; i < m.count; i++)
-        drawMenuRow(i, i == submenuSel, m.items[i].name, m.items[i].value);
+    int top = menuTop(submenuSel, m.count);
+    for (int slot = 0; slot < MENU_VISIBLE && top + slot < m.count; slot++) {
+        int i = top + slot;
+        drawMenuRow(slot, i == submenuSel, m.items[i].name, m.items[i].value);
+    }
+    drawScrollHints(top, m.count);
     display.flush();
 }
 
@@ -362,8 +564,8 @@ static void drawMainPage() {
     display.drawLine(127, 6, 127, 57, G_LINE);   // centre divider
     drawStatic(ch1,   0);
     drawStatic(ch2, 128);
-    drawSetVolt(  0, ch1.setV, selDigit);
-    drawSetVolt(128, ch2.setV, -1);
+    drawSetStrip(0);
+    drawSetStrip(1);
     drawDynamic(ch1,   0);
     drawDynamic(ch2, 128);
     display.flush();
@@ -375,16 +577,24 @@ static int wrapSel(int sel, int steps, int count) {
     return sel < 0 ? sel + count : sel;
 }
 
+// Mirror the integer setpoint stores into the Channel float fields (kept for any
+// consumer that wants the values as volts/amps).
+static void applySetpoints() {
+    ch1.setV = setV_cV[0] / 100.0f;   ch1.setI = setI_mA[0] / 1000.0f;
+    ch2.setV = setV_cV[1] / 100.0f;   ch2.setI = setI_mA[1] / 1000.0f;
+}
+
 void setup() {
     Serial.begin(115200);
 
     encoderInit();
+    mcpInit();
 
     display.begin();
 
     selfTest();
 
-    ch1.setV = setV1_cV / 100.0f;
+    applySetpoints();
     drawMainPage();
 }
 
@@ -394,9 +604,9 @@ void setup() {
 static void onShortPress() {
     switch (uiPage) {
     case PAGE_MAIN:
-        selDigit = (selDigit + 1) & 3;
-        drawSetVolt(0, ch1.setV, selDigit);
-        display.flushRect(SETV_X0, Y_SET_TOP, SETV_W, SETV_H);
+        selDigit = (selDigit + 1) & 3;             // step the digit cursor
+        drawSetStrip(editCh);
+        flushSetStrip(editCh);
         break;
     case PAGE_SETTINGS:
         submenuIdx = settingsSel;
@@ -428,17 +638,24 @@ static void onLongPress() {
     }
 }
 
-// Rotation: main page = step the selected digit of the CH1 set voltage
-// (clamped to 0..30.00 V); menus = move the highlight (wraps around).
+// Rotation: main page = step the selected digit of the active setpoint (the V/I
+// button picks channel + parameter), clamped to its range; menus = move the
+// highlight (wraps around).
 static void onRotate(int steps) {
     switch (uiPage) {
     case PAGE_MAIN:
-        setV1_cV += (int32_t)steps * DIGIT_STEP_CV[selDigit];
-        if (setV1_cV < 0)           setV1_cV = 0;
-        if (setV1_cV > SETV_MAX_CV) setV1_cV = SETV_MAX_CV;
-        ch1.setV = setV1_cV / 100.0f;
-        drawSetVolt(0, ch1.setV, selDigit);
-        display.flushRect(SETV_X0, Y_SET_TOP, SETV_W, SETV_H);
+        if (editParam == EDIT_V) {
+            setV_cV[editCh] += (int32_t)steps * V_DIGIT_STEP_CV[selDigit];
+            if (setV_cV[editCh] < 0)           setV_cV[editCh] = 0;
+            if (setV_cV[editCh] > SETV_MAX_CV) setV_cV[editCh] = SETV_MAX_CV;
+        } else {
+            setI_mA[editCh] += (int32_t)steps * I_DIGIT_STEP_MA[selDigit];
+            if (setI_mA[editCh] < 0)           setI_mA[editCh] = 0;
+            if (setI_mA[editCh] > SETI_MAX_MA) setI_mA[editCh] = SETI_MAX_MA;
+        }
+        applySetpoints();
+        drawSetStrip(editCh);
+        flushSetStrip(editCh);
         break;
     case PAGE_SETTINGS:
         settingsSel = wrapSel(settingsSel, steps, SUBMENU_COUNT);
@@ -451,10 +668,71 @@ static void onRotate(int steps) {
     }
 }
 
+// ── Front-panel button dispatch (from the expander) ────────────────────────────
+// A CHx_V / CHx_I button selects which setpoint the encoder edits; the cursor moves
+// to that field. Only meaningful on the main page.
+static void setEditTarget(int ch, EditParam p) {
+    if (uiPage != PAGE_MAIN) return;
+    editCh    = ch;
+    editParam = p;
+    drawSetStrip(0); flushSetStrip(0);             // move the cursor to the new field
+    drawSetStrip(1); flushSetStrip(1);
+}
+
+// Handle a fresh press of a non-encoder expander button.
+static void onButtonPress(uint8_t bit) {
+    switch (bit) {
+    case MCP_CH1_V: setEditTarget(0, EDIT_V); break;
+    case MCP_CH1_I: setEditTarget(0, EDIT_I); break;
+    case MCP_CH2_V: setEditTarget(1, EDIT_V); break;
+    case MCP_CH2_I: setEditTarget(1, EDIT_I); break;
+    case MCP_CH1_ON: Serial.println("CH1 ON pressed (placeholder)"); break;
+    case MCP_CH2_ON: Serial.println("CH2 ON pressed (placeholder)"); break;
+    default: break;                                // encoder button handled elsewhere
+    }
+}
+
+// Read the expander when its INT line signals a change, edge-detect button presses
+// with a per-pin debounce, and keep g_btnPressed as the debounced pressed bitmask
+// (used by serviceEncoder for the encoder button on GP0). Reading GPIO clears INT.
+static const uint32_t BTN_DEBOUNCE_MS = 20;
+
+static void serviceMcpButtons() {
+    static bool     inited        = false;
+    static uint8_t  prevPressed   = 0;
+    static uint32_t lastChange[8] = { 0 };
+
+    if (!inited) {                                 // baseline; also clears stray INT
+        uint8_t raw  = mcpRead(MCP_GPIO);
+        prevPressed  = (uint8_t)(~raw) & MCP_BTN_MASK;
+        g_btnPressed = prevPressed;
+        inited = true;
+        return;
+    }
+
+    if (digitalRead(PIN_MCP_INT)) return;          // INT idle (high) → no change
+
+    uint8_t raw     = mcpRead(MCP_GPIO);           // read + clear the interrupt
+    uint8_t pressed = (uint8_t)(~raw) & MCP_BTN_MASK;   // active-low: low = pressed
+    uint8_t changed = pressed ^ prevPressed;
+    uint32_t now    = millis();
+
+    for (int i = 0; i < 8; i++) {
+        uint8_t bit = (uint8_t)(1 << i);
+        if (!(changed & bit)) continue;
+        if (now - lastChange[i] < BTN_DEBOUNCE_MS) continue;   // swallow bounce
+        lastChange[i] = now;
+        prevPressed   = (uint8_t)((prevPressed & ~bit) | (pressed & bit));
+        g_btnPressed  = prevPressed;
+        if ((pressed & bit) && bit != MCP_ENC_BT)  // fresh press (encoder handled below)
+            onButtonPress(bit);
+    }
+}
+
 // Poll the encoder button and drain the encoder step counter, dispatching to
-// the handlers above. The button (active-low) is edge-detected with a debounce
-// lockout; holding it past LONGPRESS_MS fires the long-press action once, and
-// the following release is then swallowed so it doesn't also short-press.
+// the handlers above. The button (active-low, now on expander GP0) is edge-detected
+// with a debounce lockout; holding it past LONGPRESS_MS fires the long-press action
+// once, and the following release is then swallowed so it doesn't also short-press.
 static const uint32_t LONGPRESS_MS = 600;
 
 static void serviceEncoder() {
@@ -464,7 +742,7 @@ static void serviceEncoder() {
     static bool     longFired = false;
 
     uint32_t now = millis();
-    bool bt = !digitalRead(PIN_ENC_BT);            // true while pressed
+    bool bt = (g_btnPressed & MCP_ENC_BT) != 0;    // encoder button via the expander
     if (bt != btPrev && now - btEdgeMs > 30) {
         btEdgeMs = now;
         btPrev   = bt;
@@ -486,7 +764,9 @@ static void serviceEncoder() {
 }
 
 void loop() {
+    serviceMcpButtons();   // refresh button state (incl. encoder GP0) before dispatch
     serviceEncoder();
+    serviceBuzzer();
 
     // Demo sweep until real ADC data is wired in: CH1 in CV, CH2 clamped at CC.
     const uint32_t PERIOD = 5000;
