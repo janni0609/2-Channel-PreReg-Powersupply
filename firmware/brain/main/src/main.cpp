@@ -254,9 +254,10 @@ struct Channel {
 // Setpoints are held as integers so digit steps stay exact: voltage in centivolts
 // (0..3600 = 36.00 V), current in milliamps (0..2000 = 2.000 A). The front-panel
 // CHx_V / CHx_I buttons pick which of the four setpoints the encoder edits; the
-// encoder push selects the digit and rotation steps it. selDigit indexes the four
-// editable digits — voltage: tens/ones/tenths/hundredths; current: ones and the
-// three decimals. Displays are zero-padded so each digit has a fixed cursor column.
+// encoder push selects the digit and rotation steps it. The digit index (0..3)
+// selects one of the four editable digits — voltage: tens/ones/tenths/hundredths;
+// current: ones and the three decimals — and is remembered per field (see
+// selDigitFor). Displays are zero-padded so each digit has a fixed cursor column.
 static const int32_t SETV_MAX_CV = 3600;                     // 36.00 V
 static const int32_t SETI_MAX_MA = 2000;                     // 2.000 A
 static const int32_t V_DIGIT_STEP_CV[4] = { 1000, 100, 10, 1 };
@@ -272,7 +273,12 @@ static bool outDesired[2] = { false, false };
 enum EditParam : uint8_t { EDIT_V, EDIT_I };
 static int       editCh    = 0;                              // 0 = CH1, 1 = CH2
 static EditParam editParam = EDIT_V;                         // V or I setpoint
-static int       selDigit  = 3;                              // active digit (0..3)
+
+// Active digit (0..3), remembered independently for each CH / V-or-I target so
+// switching between fields restores the digit that was last edited there.
+// Indexed [channel][EditParam].
+static int selDigitFor[2][2] = { { 3, 3 }, { 3, 3 } };
+static inline int &selDigit() { return selDigitFor[editCh][editParam]; }
 
 // UI page state (the settings menu handlers live further down; declared here so
 // the set-strip drawing knows to show the digit cursor only on the main page).
@@ -405,8 +411,8 @@ static void drawSetStrip(int ch) {
     int xOff = ch * 128;
     char buf[8];
     bool active = (uiPage == PAGE_MAIN);
-    int vCur = (active && editCh == ch && editParam == EDIT_V) ? selDigit : -1;
-    int iCur = (active && editCh == ch && editParam == EDIT_I) ? selDigit : -1;
+    int vCur = (active && editCh == ch && editParam == EDIT_V) ? selDigitFor[ch][EDIT_V] : -1;
+    int iCur = (active && editCh == ch && editParam == EDIT_I) ? selDigitFor[ch][EDIT_I] : -1;
 
     snprintf(buf, sizeof(buf), "%05.2fV", setV_cV[ch] / 100.0f);   // "05.00V"
     drawSetField(xOff, SETV_X0, buf, DIGIT_POS_V, vCur);
@@ -717,7 +723,7 @@ void setup() {
 static void onShortPress() {
     switch (uiPage) {
     case PAGE_MAIN:
-        selDigit = (selDigit + 1) & 3;             // step the digit cursor
+        selDigit() = (selDigit() + 1) & 3;         // step the active field's digit cursor
         drawSetStrip(editCh);
         flushSetStrip(editCh);
         break;
@@ -758,12 +764,12 @@ static void onRotate(int steps) {
     switch (uiPage) {
     case PAGE_MAIN:
         if (editParam == EDIT_V) {
-            setV_cV[editCh] += (int32_t)steps * V_DIGIT_STEP_CV[selDigit];
+            setV_cV[editCh] += (int32_t)steps * V_DIGIT_STEP_CV[selDigit()];
             if (setV_cV[editCh] < 0)           setV_cV[editCh] = 0;
             if (setV_cV[editCh] > SETV_MAX_CV) setV_cV[editCh] = SETV_MAX_CV;
             pushSetVoltage(editCh);
         } else {
-            setI_mA[editCh] += (int32_t)steps * I_DIGIT_STEP_MA[selDigit];
+            setI_mA[editCh] += (int32_t)steps * I_DIGIT_STEP_MA[selDigit()];
             if (setI_mA[editCh] < 0)           setI_mA[editCh] = 0;
             if (setI_mA[editCh] > SETI_MAX_MA) setI_mA[editCh] = SETI_MAX_MA;
             pushSetCurrent(editCh);
