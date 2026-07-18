@@ -893,8 +893,13 @@ static void serviceEncoder() {
         onRotate(steps);
 }
 
-// When a channel link (re)appears, push the current setpoints + desired output so
-// the channel matches the panel even if the brain booted after the channel.
+// Track link up/down edges to keep the channel and panel in sync across drops:
+//  - up edge:   push setpoints + desired output so the channel matches the panel
+//               even if the brain booted after the channel (or the link glitched).
+//  - down edge: clear the desired-on state. On a comms drop the channel trips its
+//               output off (its own watchdog); clearing outDesired here means the
+//               resync on reconnect commands the output OFF, so a live output never
+//               silently re-energizes -- the user must press CHx_ON again.
 static void serviceLinkResync() {
     static bool prevUp[2] = { false, false };
     for (int ch = 0; ch < 2; ch++) {
@@ -903,14 +908,31 @@ static void serviceLinkResync() {
             pushSetVoltage(ch);
             pushSetCurrent(ch);
             channel_set_output((uint8_t)ch, outDesired[ch]);
+        } else if (!up && prevUp[ch]) {
+            outDesired[ch] = false;
         }
         prevUp[ch] = up;
     }
 }
 
+// Ping each channel on a fixed cadence. This heartbeat feeds the channel-side
+// comms-loss watchdog: with no other periodic Brain->channel traffic, a channel
+// would otherwise trip its output off during quiet operation. Any valid frame
+// resets the channel's watchdog, so an idle link stays alive on these pings alone.
+static void serviceLinkHeartbeat() {
+    static uint32_t lastPing = 0;
+    uint32_t now = millis();
+    if ((uint32_t)(now - lastPing) >= LINK_HEARTBEAT_MS) {
+        lastPing = now;
+        channel_ping(0);
+        channel_ping(1);
+    }
+}
+
 void loop() {
-    channel_link_task();   // drain both channel UARTs, update telemetry + link state
-    serviceLinkResync();   // re-send setpoints/output to any link that just came up
+    channel_link_task();     // drain both channel UARTs, update telemetry + link state
+    serviceLinkResync();     // re-send setpoints/output on link-up; disarm on link-down
+    serviceLinkHeartbeat();  // ping both channels so their comms-loss watchdog stays fed
     serviceMcpButtons();   // refresh button state (incl. encoder GP0) before dispatch
     serviceEncoder();
     serviceBuzzer();

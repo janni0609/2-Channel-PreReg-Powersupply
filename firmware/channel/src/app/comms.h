@@ -18,4 +18,8 @@ void comms_send_telemetry();
 /* Send an asynchronous event/error notification. */
 void comms_send_event(uint8_t code);
 
+/* Milliseconds since the last valid frame from the Brain was received.
+ * The FSM uses this as a link-loss watchdog (see COMMS_TIMEOUT_MS). */
+uint32_t comms_since_rx_ms();
+
 #endif /* CHANNEL_COMMS_H */

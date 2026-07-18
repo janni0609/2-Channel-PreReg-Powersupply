@@ -80,7 +80,8 @@ enum {
     EVT_ADC_FAULT       = 5,
     EVT_DAC_FAULT       = 6,
     EVT_CAL_STORED      = 7,
-    EVT_CAL_INVALID     = 8
+    EVT_CAL_INVALID     = 8,
+    EVT_COMMS_TIMEOUT   = 9    /* Brain link went silent -> output tripped off */
 };
 
 /* ---- Channel run-state (telemetry 'state' byte) ------------------------- */

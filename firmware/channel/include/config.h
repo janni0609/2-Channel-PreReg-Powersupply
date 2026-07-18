@@ -49,6 +49,15 @@
 /* ------------------------------------------------------------------ */
 #define TEMP_OTP_TRIP_C     60.0f      /* shut output off at/above this   */
 #define TEMP_OTP_REARM_C    55.0f      /* allow recovery below this       */
+
+/* ------------------------------------------------------------------ */
+/* Comms-loss watchdog                                                */
+/* ------------------------------------------------------------------ */
+/* While the output is on, the Brain must be heard from within this
+ * window or the channel trips the output off (safe state). The Brain
+ * pings every LINK_HEARTBEAT_MS (250) so a healthy link never trips;
+ * this leaves ~4 missed heartbeats of margin against loop jitter.    */
+#define COMMS_TIMEOUT_MS    1000u
 #define TEMP_SELFTEST_MIN_C (-10.0f)   /* startup must be within this ... */
 #define TEMP_SELFTEST_MAX_C 60.0f      /* ... range                       */
 

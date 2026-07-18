@@ -142,11 +142,22 @@ static uint8_t s_len;                      /* CMD + payload length */
 static uint8_t s_idx;
 static uint8_t s_buf[PROTO_MAX_PAYLOAD + 1];
 
+/* millis() of the last valid (good-CRC) frame from the Brain -- the
+ * link-loss watchdog's timebase. Only good frames feed it: if the link
+ * is too noisy to pass a CRC, that is a loss as far as safety cares. */
+static uint32_t s_last_rx_ms;
+
+uint32_t comms_since_rx_ms()
+{
+    return (uint32_t)(millis() - s_last_rx_ms);
+}
+
 void comms_init()
 {
     s_st = RX_SOF;
     s_idx = 0;
     s_len = 0;
+    s_last_rx_ms = millis();
 }
 
 void comms_task()
@@ -182,6 +193,7 @@ void comms_task()
             const uint8_t crc = proto_crc8(tmp, (uint8_t)(s_len + 1));
 
             if (crc == b) {
+                s_last_rx_ms = millis();   /* feed the link-loss watchdog */
                 handle(s_buf[0], &s_buf[1], (uint8_t)(s_len - 1));
             } else {
                 send_nack(s_buf[0], NACK_BAD_CRC);

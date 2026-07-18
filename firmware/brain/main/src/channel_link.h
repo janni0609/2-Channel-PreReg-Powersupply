@@ -25,6 +25,13 @@ enum { LINK_CH1 = 0, LINK_CH2 = 1, LINK_COUNT = 2 };
  * (5 missed 100 ms telemetry pushes). */
 #define LINK_TIMEOUT_MS   500u
 
+/* How often the Brain pings each channel. This is the channel's comms-loss
+ * watchdog heartbeat: the channel trips its output off if it hears nothing
+ * for COMMS_TIMEOUT_MS (1000 ms), so pinging at 250 ms keeps a healthy but
+ * idle link fed with ~4 missed-ping margin. Must stay well below the
+ * channel's COMMS_TIMEOUT_MS. */
+#define LINK_HEARTBEAT_MS 250u
+
 /* Latest snapshot for one channel: decoded telemetry plus link health. */
 struct ChannelStatus {
     /* --- decoded CMD_TELEMETRY --- */

@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "fsm.h"
+#include "config.h"
 #include "state.h"
 #include "protocol.h"
 #include "app/selftest.h"
@@ -40,6 +41,18 @@ void fsm_task()
         /* Over-temperature is the unconditional safety trip. */
         if (thermal_overtemp()) {
             enter_fault(EVT_OVERTEMP);
+            break;
+        }
+        /* Comms-loss watchdog: if the Brain falls silent while the output
+         * is live, drop to a safe state. Not a latched fault -- we return
+         * to IDLE with the output off; the Brain must explicitly command
+         * the output back on (it clears its desired-on state on link loss,
+         * so a reconnect will not silently re-energize the output). */
+        if (g_state.run_state == ST_RUN &&
+            comms_since_rx_ms() > COMMS_TIMEOUT_MS) {
+            output_disable();
+            g_state.run_state = ST_IDLE;
+            comms_send_event(EVT_COMMS_TIMEOUT);
         }
         break;
 
