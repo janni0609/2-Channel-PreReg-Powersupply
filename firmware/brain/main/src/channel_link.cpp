@@ -79,9 +79,26 @@ void channel_set_output(uint8_t ch, bool on)
     link_send(ch, CMD_SET_OUTPUT, p, 1);
 }
 
-void channel_ping(uint8_t ch)         { link_send(ch, CMD_PING,        nullptr, 0); }
-void channel_get_status(uint8_t ch)   { link_send(ch, CMD_GET_STATUS,  nullptr, 0); }
-void channel_reset_fault(uint8_t ch)  { link_send(ch, CMD_RESET_FAULT, nullptr, 0); }
+void channel_set_avg(uint8_t ch, uint8_t which, uint8_t count)
+{
+    if (ch >= LINK_COUNT || which >= AVG_COUNT) return;
+    if (count < AVG_MIN) count = AVG_MIN;
+    if (count > AVG_MAX) count = AVG_MAX;
+
+    // Optimistic local update so the menu shows the new value immediately; the
+    // channel's CMD_SETTINGS reply will reconcile if it clamped differently.
+    if (which == AVG_V) s_status[ch].avgV = count;
+    else                s_status[ch].avgI = count;
+    s_status[ch].avgValid = true;
+
+    uint8_t p[2] = { which, count };
+    link_send(ch, CMD_SET_AVG, p, 2);
+}
+
+void channel_ping(uint8_t ch)          { link_send(ch, CMD_PING,         nullptr, 0); }
+void channel_get_status(uint8_t ch)    { link_send(ch, CMD_GET_STATUS,   nullptr, 0); }
+void channel_get_settings(uint8_t ch)  { link_send(ch, CMD_GET_SETTINGS, nullptr, 0); }
+void channel_reset_fault(uint8_t ch)   { link_send(ch, CMD_RESET_FAULT,  nullptr, 0); }
 
 void channel_cal_point(uint8_t ch, uint8_t target, uint8_t index, int32_t actual)
 {
@@ -110,8 +127,9 @@ static void handle_frame(uint8_t ch, uint8_t cmd, const uint8_t *pl, uint8_t ple
     ChannelStatus &st = s_status[ch];
 
     switch (cmd) {
-    case CMD_TELEMETRY:
+    case CMD_TELEMETRY: {
         if (plen < TELEMETRY_PAYLOAD_LEN) return;    // malformed, ignore
+        const bool wasUp = st.linkUp;
         st.v_mV    = proto_get_i32(&pl[0]);
         st.i_dmA   = proto_get_i32(&pl[4]);
         st.p_mW    = proto_get_i32(&pl[8]);
@@ -121,6 +139,17 @@ static void handle_frame(uint8_t ch, uint8_t cmd, const uint8_t *pl, uint8_t ple
         st.linkUp   = true;
         st.lastRxMs = millis();
         st.framesRx++;
+        // On a fresh (or recovered) link, pull the channel's stored settings so
+        // the menu shows the value the channel actually persisted, not a guess.
+        if (!wasUp || !st.avgValid) channel_get_settings(ch);
+        break;
+    }
+
+    case CMD_SETTINGS:
+        if (plen < SETTINGS_PAYLOAD_LEN) return;      // malformed, ignore
+        st.avgV     = proto_get_u8(&pl[0]);
+        st.avgI     = proto_get_u8(&pl[1]);
+        st.avgValid = true;
         break;
 
     case CMD_ACK:

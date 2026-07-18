@@ -40,7 +40,9 @@ enum {
     CMD_SET_VOLTAGE   = 0x10,  /* int32 mV                                   */
     CMD_SET_CURRENT   = 0x11,  /* int32 mA                                   */
     CMD_SET_OUTPUT    = 0x12,  /* uint8 (0=off, 1=on)                        */
+    CMD_SET_AVG       = 0x13,  /* uint8 which (AVG_*), uint8 count (1..32)   */
     CMD_GET_STATUS    = 0x20,  /* no payload -> replies CMD_TELEMETRY        */
+    CMD_GET_SETTINGS  = 0x21,  /* no payload -> replies CMD_SETTINGS         */
     CMD_CAL_POINT     = 0x30,  /* uint8 target, uint8 index, int32 actual    */
     CMD_CAL_COMMIT    = 0x31,  /* uint8 target                               */
     CMD_CAL_RESET     = 0x32,  /* uint8 target (restore defaults)            */
@@ -50,8 +52,21 @@ enum {
     CMD_TELEMETRY     = 0x80,  /* see telemetry layout below                 */
     CMD_ACK           = 0x81,  /* uint8 acked_cmd                            */
     CMD_NACK          = 0x82,  /* uint8 acked_cmd, uint8 reason              */
-    CMD_EVENT         = 0x83   /* uint8 event_code                           */
+    CMD_EVENT         = 0x83,  /* uint8 event_code                           */
+    CMD_SETTINGS      = 0x84   /* uint8 avg_v, uint8 avg_i (see below)       */
 };
+
+/* ---- Measurement-averaging selector (CMD_SET_AVG 'which' byte) ----------- */
+/* Each channel keeps an independent moving-average window length for its
+ * voltage and current readings; both are persisted in the channel's EEPROM
+ * and reported back via CMD_SETTINGS. Valid window length is AVG_MIN..AVG_MAX. */
+enum {
+    AVG_V     = 0,   /* measured-voltage averaging window */
+    AVG_I     = 1,   /* measured-current averaging window */
+    AVG_COUNT = 2
+};
+#define AVG_MIN   1u
+#define AVG_MAX   32u
 
 /* ---- Calibration targets ------------------------------------------------ */
 enum {
@@ -112,6 +127,13 @@ enum {
  * (the p_mW field is included to save the Brain a multiply; 16 bytes total)
  */
 #define TELEMETRY_PAYLOAD_LEN  16u
+
+/*
+ * Settings payload (CMD_SETTINGS), the channel's reply to CMD_GET_SETTINGS:
+ *   uint8  avg_v      voltage measurement averaging window (AVG_MIN..AVG_MAX)
+ *   uint8  avg_i      current measurement averaging window (AVG_MIN..AVG_MAX)
+ */
+#define SETTINGS_PAYLOAD_LEN   2u
 
 /* ---- CRC-8 (poly 0x07, init 0x00) --------------------------------------- */
 static inline uint8_t proto_crc8(const uint8_t *data, uint8_t len)

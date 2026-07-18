@@ -3,7 +3,8 @@
 
 #include "storage.h"
 
-#define CAL_STORE_ADDR  0   /* base EEPROM address */
+#define CAL_STORE_ADDR       0    /* calibration blob base address (~40 B) */
+#define SETTINGS_STORE_ADDR  64   /* settings blob base address (clears CalStore) */
 
 /* CRC16-CCITT (poly 0x1021, init 0xFFFF) over a byte span. */
 static uint16_t crc16(const uint8_t *data, uint16_t len)
@@ -38,4 +39,25 @@ void storage_save(CalStore *in)
     in->crc     = crc16((const uint8_t *)in,
                         sizeof(CalStore) - sizeof(in->crc));
     EEPROM.put(CAL_STORE_ADDR, *in);   /* EEPROM.put only writes changed bytes */
+}
+
+bool settings_store_load(SettingsStore *out)
+{
+    EEPROM.get(SETTINGS_STORE_ADDR, *out);
+
+    if (out->magic != SETTINGS_STORE_MAGIC)     return false;
+    if (out->version != SETTINGS_STORE_VERSION) return false;
+
+    const uint16_t want = crc16((const uint8_t *)out,
+                                sizeof(SettingsStore) - sizeof(out->crc));
+    return out->crc == want;
+}
+
+void settings_store_save(SettingsStore *in)
+{
+    in->magic   = SETTINGS_STORE_MAGIC;
+    in->version = SETTINGS_STORE_VERSION;
+    in->crc     = crc16((const uint8_t *)in,
+                        sizeof(SettingsStore) - sizeof(in->crc));
+    EEPROM.put(SETTINGS_STORE_ADDR, *in);   /* EEPROM.put only writes changed bytes */
 }

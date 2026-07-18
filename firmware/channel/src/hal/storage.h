@@ -28,4 +28,24 @@ bool storage_load(CalStore *out);
 /* Stamp magic/version, compute CRC and write to EEPROM. */
 void storage_save(CalStore *in);
 
+/* ---- Channel settings blob (separate from calibration) ------------------ */
+/* Kept in its own EEPROM region with its own magic/version/CRC so evolving the
+ * settings never risks invalidating (and wiping) the calibration coefficients,
+ * and vice-versa. Holds the per-measurement averaging window lengths. */
+#define SETTINGS_STORE_MAGIC    0x53455431UL  /* 'S''E''T''1' */
+#define SETTINGS_STORE_VERSION  1
+
+struct SettingsStore {
+    uint32_t magic;
+    uint16_t version;
+    uint8_t  avg[AVG_COUNT]; /* [AVG_V], [AVG_I] moving-average window length */
+    uint16_t crc;            /* CRC16 over all preceding bytes */
+};
+
+/* Load and validate. Returns true and fills *out on success. */
+bool settings_store_load(SettingsStore *out);
+
+/* Stamp magic/version, compute CRC and write to EEPROM. */
+void settings_store_save(SettingsStore *in);
+
 #endif /* CHANNEL_STORAGE_H */

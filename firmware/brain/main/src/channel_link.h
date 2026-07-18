@@ -42,6 +42,11 @@ struct ChannelStatus {
     uint8_t  state;       /* ST_* run-state                               */
     uint8_t  flags;       /* FLAG_* status bits                           */
 
+    /* --- per-channel settings (from CMD_SETTINGS) --- */
+    uint8_t  avgV;        /* voltage measurement averaging window (1..32)  */
+    uint8_t  avgI;        /* current measurement averaging window (1..32)  */
+    bool     avgValid;    /* true once CMD_SETTINGS has been received       */
+
     /* --- link health / bookkeeping --- */
     bool     linkUp;      /* telemetry seen within LINK_TIMEOUT_MS        */
     uint32_t lastRxMs;    /* millis() of the last valid frame             */
@@ -67,8 +72,13 @@ void channel_link_task();
 void channel_set_voltage(uint8_t ch, int32_t mV);
 void channel_set_current(uint8_t ch, int32_t mA);
 void channel_set_output (uint8_t ch, bool on);
+/* Set a measurement averaging window (which = AVG_V / AVG_I, count 1..32).
+ * Updates the cached ChannelStatus optimistically so the UI reflects it at once;
+ * the channel confirms with a CMD_SETTINGS reply. */
+void channel_set_avg    (uint8_t ch, uint8_t which, uint8_t count);
 void channel_ping       (uint8_t ch);
 void channel_get_status (uint8_t ch);
+void channel_get_settings(uint8_t ch);
 void channel_reset_fault(uint8_t ch);
 void channel_cal_point  (uint8_t ch, uint8_t target, uint8_t index, int32_t actual);
 void channel_cal_commit (uint8_t ch, uint8_t target);

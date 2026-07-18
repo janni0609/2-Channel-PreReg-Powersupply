@@ -19,6 +19,7 @@
 #include "drivers/mcp48fvb22.h"
 
 #include "app/calibration.h"
+#include "app/settings.h"
 #include "app/setpoint.h"
 #include "app/measure.h"
 #include "app/thermal.h"
@@ -45,6 +46,7 @@ void setup()
     mcp48_init();          /* program DAC reference/gain and zero outputs */
 
     /* App modules */
+    settings_init();       /* averaging windows; measure_task() reads these */
     setpoint_init();
     measure_init();
     thermal_init();

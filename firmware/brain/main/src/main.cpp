@@ -480,14 +480,16 @@ struct MenuItem { const char *name; const char *value; };
 // only the underlying data source differs — see resolveMenuValue()).
 // Row indices are referenced by resolveMenuValue(), keep them in sync.
 enum {
-    CHITEM_TEMP = 0, CHITEM_VOLT, CHITEM_CURR, CHITEM_OTP,
-    CHITEM_DAC, CHITEM_ADC, CHITEM_COMM, CHITEM_RUNTIME,
+    CHITEM_TEMP = 0, CHITEM_VOLT, CHITEM_CURR, CHITEM_AVGV, CHITEM_AVGI,
+    CHITEM_OTP, CHITEM_DAC, CHITEM_ADC, CHITEM_COMM, CHITEM_RUNTIME,
     CHITEM_CALV, CHITEM_CALI, CHITEM_MANV, CHITEM_MANI
 };
 static const MenuItem CHANNEL_ITEMS[] = {
     { "Temp",         "-- C"     },   // live: measured
     { "Volt",         "-- V"     },   // live: measured
     { "Curr",         "-- A"     },   // live: measured
+    { "Avg V",        "--"       },   // editable: V measurement averaging (1..32)
+    { "Avg I",        "--"       },   // editable: I measurement averaging (1..32)
     { "OTP",          "80 C"     },   // setpoint 0-100 C (placeholder)
     { "DAC state",    "--"       },   // live: telemetry flag
     { "ADC state",    "--"       },   // live: telemetry flag
@@ -551,6 +553,21 @@ static int settingsSel = 0;  // highlighted entry in the overview
 static int submenuIdx  = 0;  // which submenu is open
 static int submenuSel  = 0;  // highlighted row inside the open submenu
 
+// Inline editing of a numeric submenu row (currently the Avg V / Avg I rows).
+// While editing, rotation changes editValue instead of moving the highlight, a
+// short press commits, a long press cancels.
+static bool    submenuEditing = false;
+static uint8_t editValue       = (uint8_t)AVG_MIN;
+
+// Is the given channel-submenu row an editable averaging row? If so, report the
+// AVG_* selector it edits. Only the CH1/CH2 submenus have them.
+static bool avgRowSelector(int subIdx, int row, uint8_t *which) {
+    if (subIdx != SUB_CH1 && subIdx != SUB_CH2) return false;
+    if (row == CHITEM_AVGV) { if (which) *which = AVG_V; return true; }
+    if (row == CHITEM_AVGI) { if (which) *which = AVG_I; return true; }
+    return false;
+}
+
 // Resolve the value string for a menu row. Channel / fan rows that mirror live
 // telemetry are formatted into `buf`; every other row returns its static value.
 // Returns a pointer valid until the next call (either `buf` or the static string).
@@ -574,6 +591,12 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
             return up ? ((s.flags & FLAG_ADC_FAULT) ? "FAULT" : "OK") : "--";
         case CHITEM_COMM:
             return up ? "OK" : "FAIL";
+        case CHITEM_AVGV:
+            if (!s.avgValid) break;
+            snprintf(buf, buflen, "%u", (unsigned)s.avgV); return buf;
+        case CHITEM_AVGI:
+            if (!s.avgValid) break;
+            snprintf(buf, buflen, "%u", (unsigned)s.avgI); return buf;
         default:
             break;
         }
@@ -667,7 +690,14 @@ static void drawSubmenu() {
     for (int slot = 0; slot < MENU_VISIBLE && top + slot < m.count; slot++) {
         int i = top + slot;
         char vbuf[20];
-        const char *val = resolveMenuValue(submenuIdx, i, m.items[i], vbuf, sizeof(vbuf));
+        const char *val;
+        if (submenuEditing && i == submenuSel) {
+            // Brackets flag the row as being actively edited.
+            snprintf(vbuf, sizeof(vbuf), "[%u]", (unsigned)editValue);
+            val = vbuf;
+        } else {
+            val = resolveMenuValue(submenuIdx, i, m.items[i], vbuf, sizeof(vbuf));
+        }
         drawMenuRow(slot, i == submenuSel, m.items[i].name, val);
     }
     drawScrollHints(top, m.count);
@@ -728,13 +758,31 @@ static void onShortPress() {
         flushSetStrip(editCh);
         break;
     case PAGE_SETTINGS:
-        submenuIdx = settingsSel;
-        submenuSel = 0;
-        uiPage     = PAGE_SUBMENU;
+        submenuIdx     = settingsSel;
+        submenuSel     = 0;
+        submenuEditing = false;
+        uiPage         = PAGE_SUBMENU;
         drawSubmenu();
         break;
-    case PAGE_SUBMENU:
-        break;  // dummy values — nothing to edit yet
+    case PAGE_SUBMENU: {
+        uint8_t which;
+        if (!avgRowSelector(submenuIdx, submenuSel, &which)) break;  // not editable
+        if (!submenuEditing) {
+            // Enter edit: seed from the channel's known value (fall back to min).
+            const ChannelStatus &s = channel_status((uint8_t)submenuIdx);
+            uint8_t cur = (which == AVG_V) ? s.avgV : s.avgI;
+            if (!s.avgValid || cur < AVG_MIN || cur > AVG_MAX) cur = (uint8_t)AVG_MIN;
+            editValue = cur;
+            submenuEditing = true;
+        } else {
+            // Commit: push to the channel (updates the cached value too).
+            channel_set_avg((uint8_t)submenuIdx, which, editValue);
+            submenuEditing = false;
+            beep(20);
+        }
+        drawSubmenu();
+        break;
+    }
     }
 }
 
@@ -751,8 +799,13 @@ static void onLongPress() {
         drawMainPage();
         break;
     case PAGE_SUBMENU:
-        uiPage = PAGE_SETTINGS;
-        drawSettingsOverview();
+        if (submenuEditing) {
+            submenuEditing = false;   // cancel edit, discard the pending value
+            drawSubmenu();
+        } else {
+            uiPage = PAGE_SETTINGS;
+            drawSettingsOverview();
+        }
         break;
     }
 }
@@ -783,7 +836,14 @@ static void onRotate(int steps) {
         drawSettingsOverview();
         break;
     case PAGE_SUBMENU:
-        submenuSel = wrapSel(submenuSel, steps, SUBMENUS[submenuIdx].count);
+        if (submenuEditing) {
+            int v = (int)editValue + steps;
+            if (v < (int)AVG_MIN) v = (int)AVG_MIN;
+            if (v > (int)AVG_MAX) v = (int)AVG_MAX;
+            editValue = (uint8_t)v;
+        } else {
+            submenuSel = wrapSel(submenuSel, steps, SUBMENUS[submenuIdx].count);
+        }
         drawSubmenu();
         break;
     }

@@ -79,6 +79,15 @@
 #define ADC_AUTOSCALE_DN_PCT    42     /* |code| below % FS -> higher gain*/
 
 /* ------------------------------------------------------------------ */
+/* Measurement averaging                                              */
+/* ------------------------------------------------------------------ */
+/* Default moving-average window length (samples) for the V and I
+ * readings, used the first time the settings EEPROM is seeded. 1 = no
+ * averaging. The Brain can change it per channel (1..AVG_MAX); the value
+ * persists in the channel's EEPROM. */
+#define MEAS_AVG_DEFAULT        1u
+
+/* ------------------------------------------------------------------ */
 /* Task periods (ms) for the cooperative scheduler                    */
 /* ------------------------------------------------------------------ */
 #define PERIOD_THERMAL_MS       100u

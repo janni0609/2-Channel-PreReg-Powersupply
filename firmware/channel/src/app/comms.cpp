@@ -8,6 +8,7 @@
 #include "setpoint.h"
 #include "measure.h"
 #include "calibration.h"
+#include "settings.h"
 #include "fsm.h"
 
 /* ---- Outbound framing ---------------------------------------------------- */
@@ -57,6 +58,14 @@ void comms_send_telemetry()
     send_frame(CMD_TELEMETRY, p, TELEMETRY_PAYLOAD_LEN);
 }
 
+static void send_settings()
+{
+    uint8_t p[SETTINGS_PAYLOAD_LEN];
+    proto_put_u8(&p[0], settings_avg(AVG_V));
+    proto_put_u8(&p[1], settings_avg(AVG_I));
+    send_frame(CMD_SETTINGS, p, SETTINGS_PAYLOAD_LEN);
+}
+
 /* ---- Command dispatch ---------------------------------------------------- */
 static void handle(uint8_t cmd, const uint8_t *pl, uint8_t plen)
 {
@@ -83,8 +92,18 @@ static void handle(uint8_t cmd, const uint8_t *pl, uint8_t plen)
         send_ack(cmd);
         break;
 
+    case CMD_SET_AVG:
+        if (plen < 2) { send_nack(cmd, NACK_BAD_LEN); break; }
+        if (!settings_set_avg(pl[0], pl[1])) { send_nack(cmd, NACK_BAD_PARAM); break; }
+        send_ack(cmd);
+        break;
+
     case CMD_GET_STATUS:
         comms_send_telemetry();
+        break;
+
+    case CMD_GET_SETTINGS:
+        send_settings();
         break;
 
     case CMD_CAL_POINT: {

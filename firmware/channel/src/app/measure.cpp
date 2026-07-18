@@ -2,6 +2,7 @@
 
 #include "measure.h"
 #include "calibration.h"
+#include "settings.h"
 #include "config.h"
 #include "state.h"
 #include "drivers/ads1118.h"
@@ -15,6 +16,38 @@ static uint8_t    s_pga[2];        /* current PGA index per channel */
 static uint32_t   s_t0;
 static float      s_vadc[2];       /* last input voltage per channel */
 
+/* Moving-average ring per channel. We keep the last AVG_MAX samples and, on
+ * each update, average the most recent `n` of them (n = the Brain-set window,
+ * 1..AVG_MAX). Re-summing up to 32 int32s per read is trivial at the ADC rate
+ * and stays correct across window changes and warm-up without incremental-sum
+ * bookkeeping. Indexed by AdsChannel (ADS_CH_V / ADS_CH_I). */
+struct AvgRing {
+    int32_t buf[AVG_MAX];
+    uint8_t head;     /* next write slot; (head-1) is the most recent sample */
+    uint8_t filled;   /* valid samples so far (<= AVG_MAX)                   */
+};
+static AvgRing s_avg[2];
+
+/* Push one sample and return the mean of the most recent `n` samples. */
+static int32_t avg_push(AvgRing &a, int32_t sample, uint8_t n)
+{
+    if (n < AVG_MIN) n = (uint8_t)AVG_MIN;
+    if (n > AVG_MAX) n = (uint8_t)AVG_MAX;
+
+    a.buf[a.head] = sample;
+    a.head = (uint8_t)((a.head + 1u) % AVG_MAX);
+    if (a.filled < AVG_MAX) a.filled++;
+
+    uint8_t win = (n < a.filled) ? n : a.filled;   /* don't average empty slots */
+    int64_t sum = 0;
+    uint8_t i = a.head;                            /* walk back from most recent */
+    for (uint8_t k = 0; k < win; k++) {
+        i = (i == 0) ? (uint8_t)(AVG_MAX - 1) : (uint8_t)(i - 1);
+        sum += a.buf[i];
+    }
+    return (int32_t)(sum / win);
+}
+
 static const int32_t kFsCode = 32767;
 static const int32_t kUpThresh = (kFsCode * ADC_AUTOSCALE_UP_PCT) / 100;
 static const int32_t kDnThresh = (kFsCode * ADC_AUTOSCALE_DN_PCT) / 100;
@@ -25,6 +58,8 @@ void measure_init()
     s_pga[ADS_CH_I] = ADC_PGA_START_INDEX;
     s_vadc[ADS_CH_V] = 0.0f;
     s_vadc[ADS_CH_I] = 0.0f;
+    s_avg[ADS_CH_V].head = s_avg[ADS_CH_V].filled = 0;
+    s_avg[ADS_CH_I].head = s_avg[ADS_CH_I].filled = 0;
     s_ch = ADS_CH_V;
     s_phase = M_START;
 }
@@ -49,13 +84,13 @@ static void process(AdsChannel ch, int16_t code)
     if (ch == ADS_CH_V) {
         int32_t v = (int32_t)lroundf(cal_apply(CAL_VMEAS, volts));
         if (v < 0) v = 0;
-        g_state.meas_v_mV = v;
+        g_state.meas_v_mV = avg_push(s_avg[ADS_CH_V], v, settings_avg(AVG_V));
     } else {
         /* cal_apply returns mA; store in 0.1 mA units so the Brain can show a
          * real 4th decimal (the ADS1118 autoscale resolves well below 1 mA). */
         int32_t i = (int32_t)lroundf(cal_apply(CAL_IMEAS, volts) * 10.0f);
         if (i < 0) i = 0;
-        g_state.meas_i_dmA = i;
+        g_state.meas_i_dmA = avg_push(s_avg[ADS_CH_I], i, settings_avg(AVG_I));
     }
 
     /* Power (mW) from the latest V (mV) and I (0.1 mA): mV * dmA / 10000. */
