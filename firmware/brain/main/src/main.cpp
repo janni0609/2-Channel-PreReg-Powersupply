@@ -1,6 +1,8 @@
 #include <Arduino.h>
+#include <EEPROM.h>
 #include <SSD1322.h>
 #include <Wire.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -185,6 +187,172 @@ static void serviceBuzzer() {
     if (buzzerOffMs && (int32_t)(millis() - buzzerOffMs) >= 0) {
         mcpSetBuzzer(false);
         buzzerOffMs = 0;
+    }
+}
+
+// ── Heatsink NTC thermistor (brain ADC) ────────────────────────────────────────
+// A 10k B3435 NTC on GPIO29 (ADC3) is the low leg of a divider with a 10k pull-up
+// to 3V3; the same 3V3 rail is the ADC reference, so the reading is ratiometric and
+// the exact rail voltage cancels. Node voltage falls as the heatsink heats up.
+//   3V3 ── 10k ──┬── GPIO29 (ADC3)
+//                └── NTC(10k @25C) ── GND
+#define PIN_NTC 29
+static const float NTC_PULLUP_OHM = 10000.0f;   // top resistor to 3V3
+static const float NTC_R25_OHM    = 10000.0f;   // NTC nominal resistance at 25 C
+static const float NTC_BETA       = 3435.0f;    // B25/85 constant (B3435)
+static const float NTC_T0_K       = 298.15f;    // 25 C in kelvin
+static const int   NTC_ADC_BITS   = 12;         // analogReadResolution() set in setup()
+static const int   NTC_OVERSAMPLE = 16;         // raw samples averaged per read
+
+// Read the heatsink NTC and convert to degrees C via the beta model. Returns NAN
+// when the divider sits at either rail (open or shorted thermistor / bad wiring).
+static float readHeatsinkTempC() {
+    uint32_t acc = 0;
+    for (int i = 0; i < NTC_OVERSAMPLE; i++) acc += (uint32_t)analogRead(PIN_NTC);
+    const int   maxCount = (1 << NTC_ADC_BITS) - 1;
+    const float ratio    = (float)acc / ((float)NTC_OVERSAMPLE * (float)maxCount);
+    if (ratio <= 0.01f || ratio >= 0.99f) return NAN;   // rail: open/short, no valid temp
+
+    // Divider: Vnode = Vcc * Rntc/(Rntc + Rpull)  ->  Rntc = Rpull * ratio/(1 - ratio).
+    const float rNtc = NTC_PULLUP_OHM * ratio / (1.0f - ratio);
+    // Beta equation: 1/T = 1/T0 + ln(Rntc/R25)/B.
+    const float tK = 1.0f / (1.0f / NTC_T0_K + logf(rNtc / NTC_R25_OHM) / NTC_BETA);
+    return tK - 273.15f;
+}
+
+// ── Chassis fan (12V 4-wire PWM) ───────────────────────────────────────────────
+// A PC fan's PWM control input is on GPIO26. Speed follows the hottest measured
+// temperature (Ch1 / Ch2 / heatsink) using the curve configured in the Temp and Fan
+// submenu: off below "Fan start temp", jumping to "Fan min speed" there and ramping
+// linearly to 100% at "Fan max temp". Standard 4-wire fan PWM runs at 25 kHz.
+#define PIN_FAN 26
+static const uint32_t FAN_PWM_HZ    = 25000;   // Intel 4-wire spec target (21-28 kHz)
+static const uint16_t FAN_PWM_RANGE = 1000;    // analogWrite() full-scale (0.1% steps)
+static const float    FAN_HYST_C    = 3.0f;    // switch-on hysteresis (anti-chatter)
+static const uint32_t FAN_UPDATE_MS = 500;     // control-loop period
+
+// Thermal setpoints, also shown (and edited) in the Temp and Fan submenu. Single
+// source of truth: resolveMenuValue() renders these, the thermal service acts on them.
+static uint8_t g_fanMinPct = 20;   // fan duty when it first switches on
+static int     g_fanStartC = 45;   // fan switch-on temperature
+static int     g_fanMaxC   = 70;   // temperature at which the fan reaches 100%
+static int     g_sysOtpC   = 85;   // system over-temp trip (Temp max >= this -> outputs off)
+
+static const float SYS_OTP_HYST_C = 5.0f;   // clear the trip this far below the setpoint
+
+// Shared thermal state, updated by serviceThermal(): the hottest measured
+// temperature (Ch1 / Ch2 / heatsink) and the latched over-temperature trip.
+static float g_tempMaxC   = NAN;   // NAN until the first sample / when no sensor is valid
+static bool  g_otpTripped = false; // true while the OTP latch holds the outputs off
+
+// ── Persistent thermal setpoints (flash-backed EEPROM emulation) ───────────────
+// The four Temp-and-Fan setpoints survive reboots. Layout mirrors the channel's
+// storage: magic + version gate the blob and a CRC16 guards it. Saved when a
+// Temp-and-Fan edit is committed; loaded once at boot (defaults stand if the blob is
+// absent or corrupt).
+#define BRAIN_EEPROM_SIZE     256
+#define THERMAL_STORE_ADDR    0
+#define THERMAL_STORE_MAGIC   0x54484D31u   /* 'THM1' */
+#define THERMAL_STORE_VERSION 1
+
+struct ThermalStore {
+    uint32_t magic;
+    uint16_t version;
+    uint8_t  fanMinPct;
+    uint8_t  fanStartC;
+    uint8_t  fanMaxC;
+    uint8_t  sysOtpC;
+    uint16_t crc;
+};
+
+// CRC16-CCITT (poly 0x1021, init 0xFFFF), same routine as the channel storage.
+static uint16_t crc16(const uint8_t *data, uint16_t len) {
+    uint16_t crc = 0xFFFFu;
+    for (uint16_t i = 0; i < len; i++) {
+        crc ^= (uint16_t)data[i] << 8;
+        for (uint8_t b = 0; b < 8; b++)
+            crc = (crc & 0x8000u) ? (uint16_t)((crc << 1) ^ 0x1021u) : (uint16_t)(crc << 1);
+    }
+    return crc;
+}
+
+// Persist the current thermal setpoints to flash. Called after a committed edit.
+static void thermalSettingsSave() {
+    ThermalStore s;
+    s.magic     = THERMAL_STORE_MAGIC;
+    s.version   = THERMAL_STORE_VERSION;
+    s.fanMinPct = g_fanMinPct;
+    s.fanStartC = (uint8_t)g_fanStartC;
+    s.fanMaxC   = (uint8_t)g_fanMaxC;
+    s.sysOtpC   = (uint8_t)g_sysOtpC;
+    s.crc       = crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc));
+    EEPROM.put(THERMAL_STORE_ADDR, s);
+    EEPROM.commit();   // RP2350 EEPROM emulation is a RAM shadow; commit flushes it
+}
+
+// Load persisted setpoints at boot, clamped to the editor ranges. Leaves the
+// compiled-in defaults in place if the blob is absent or fails validation.
+static void thermalSettingsLoad() {
+    ThermalStore s;
+    EEPROM.get(THERMAL_STORE_ADDR, s);
+    if (s.magic != THERMAL_STORE_MAGIC || s.version != THERMAL_STORE_VERSION) return;
+    if (s.crc != crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc)))        return;
+    g_fanMinPct = s.fanMinPct > 100 ? 100 : s.fanMinPct;
+    g_fanStartC = s.fanStartC > 100 ? 100 : s.fanStartC;
+    g_fanMaxC   = s.fanMaxC   > 100 ? 100 : s.fanMaxC;
+    g_sysOtpC   = s.sysOtpC   < 40 ? 40 : (s.sysOtpC > 120 ? 120 : s.sysOtpC);
+}
+
+static void fanInit() {
+    analogWriteFreq(FAN_PWM_HZ);
+    analogWriteRange(FAN_PWM_RANGE);
+    analogWrite(PIN_FAN, FAN_PWM_RANGE);   // fail-safe: full speed until the first temp read
+}
+
+// Hottest currently-valid temperature (Ch1 / Ch2 telemetry + heatsink NTC), or NAN
+// if none is available.
+static float governingTempC() {
+    float best = NAN;
+    const ChannelStatus &s1 = channel_status(0);
+    const ChannelStatus &s2 = channel_status(1);
+    if (s1.linkUp) { float t = s1.temp_cC / 100.0f; if (isnan(best) || t > best) best = t; }
+    if (s2.linkUp) { float t = s2.temp_cC / 100.0f; if (isnan(best) || t > best) best = t; }
+    float ths = readHeatsinkTempC();
+    if (!isnan(ths) && (isnan(best) || ths > best)) best = ths;
+    return best;
+}
+
+// Fan duty (%) on the ramp for temperature t, ignoring the on/off latch: min% at or
+// below the start temp, 100% at or above the max temp, linear in between.
+static uint8_t fanRampPct(float t) {
+    if (g_fanMaxC <= g_fanStartC) return 100;   // guard a degenerate/inverted curve
+    if (t <= g_fanStartC) return g_fanMinPct;
+    if (t >= g_fanMaxC)   return 100;
+    float frac = (t - (float)g_fanStartC) / (float)(g_fanMaxC - g_fanStartC);
+    int pct = (int)g_fanMinPct + (int)(frac * (100 - (int)g_fanMinPct) + 0.5f);
+    return (uint8_t)(pct > 100 ? 100 : pct);
+}
+
+// Apply the fan curve for governing temperature t (no timer of its own). The fan
+// latches on at "Fan start temp" and off only after dropping FAN_HYST_C below it, so
+// it doesn't chatter around the threshold. Unknown temperature -> full (fail-safe).
+static void fanApply(float t) {
+    static bool fanOn    = true;   // fail-safe until the first evaluation
+    static int  lastDuty = -1;
+    uint8_t pct;
+    if (isnan(t)) {
+        pct   = 100;                   // no valid sensor: full speed
+        fanOn = true;
+    } else {
+        if (fanOn) { if (t < (float)g_fanStartC - FAN_HYST_C) fanOn = false; }
+        else       { if (t >= (float)g_fanStartC)             fanOn = true;  }
+        pct = fanOn ? fanRampPct(t) : 0;
+    }
+
+    int duty = (int)pct * FAN_PWM_RANGE / 100;
+    if (duty != lastDuty) {
+        analogWrite(PIN_FAN, duty);
+        lastDuty = duty;
     }
 }
 
@@ -500,16 +668,17 @@ static const MenuItem CHANNEL_ITEMS[] = {
     { "Manual Cal V", "Hold"     },   // enter cal procedure (needs confirm)
     { "Manual Cal I", "Hold"     },
 };
-enum { FANITEM_T1 = 0, FANITEM_T2, FANITEM_THS, FANITEM_TMAX };
+enum { FANITEM_T1 = 0, FANITEM_T2, FANITEM_THS, FANITEM_TMAX,
+       FANITEM_OTP, FANITEM_FANMIN, FANITEM_FANSTART, FANITEM_FANMAX };
 static const MenuItem FAN_ITEMS[] = {
     { "Temp Ch1",     "-- C"  },   // live: measured
     { "Temp Ch2",     "-- C"  },   // live: measured
-    { "Temp heatsink","-- C"  },   // measured (brain) — placeholder
+    { "Temp heatsink","-- C"  },   // live: brain NTC on GPIO29 (readHeatsinkTempC)
     { "Temp max",     "-- C"  },   // live: max of Ch1/Ch2
     { "SYS OTP",      "85 C"  },   // brain OTP setpoint vs. max temp
-    { "Fan min speed","20 %"  },   // setpoint
-    { "Fan start temp","45 C" },   // setpoint 0-100 C
-    { "Fan max temp", "70 C"  },   // setpoint 0-100 C
+    { "Fan min speed","20 %"  },   // live: g_fanMinPct (drives serviceFan)
+    { "Fan start temp","45 C" },   // live: g_fanStartC
+    { "Fan max temp", "70 C"  },   // live: g_fanMaxC
 };
 static const MenuItem UI_ITEMS[] = {
     { "Beeper",      "On"      },
@@ -553,11 +722,14 @@ static int settingsSel = 0;  // highlighted entry in the overview
 static int submenuIdx  = 0;  // which submenu is open
 static int submenuSel  = 0;  // highlighted row inside the open submenu
 
-// Inline editing of a numeric submenu row (currently the Avg V / Avg I rows).
-// While editing, rotation changes editValue instead of moving the highlight, a
-// short press commits, a long press cancels.
-static bool    submenuEditing = false;
-static uint8_t editValue       = (uint8_t)AVG_MIN;
+// Inline editing of a numeric submenu row (Avg V/I on the channels; the fan curve +
+// SYS OTP on Temp and Fan). While editing, rotation changes editValue within
+// [editMin, editMax] instead of moving the highlight; a short press commits, a long
+// press cancels.
+static bool submenuEditing = false;
+static int  editValue      = 0;
+static int  editMin        = 0;
+static int  editMax        = 0;
 
 // Is the given channel-submenu row an editable averaging row? If so, report the
 // AVG_* selector it edits. Only the CH1/CH2 submenus have them.
@@ -566,6 +738,51 @@ static bool avgRowSelector(int subIdx, int row, uint8_t *which) {
     if (row == CHITEM_AVGV) { if (which) *which = AVG_V; return true; }
     if (row == CHITEM_AVGI) { if (which) *which = AVG_I; return true; }
     return false;
+}
+
+// If (subIdx, row) is an inline-editable row, report its current value and the
+// [lo, hi] range the editor clamps to. Two kinds: the channel averaging rows (seeded
+// from telemetry, committed over the link) and the Temp-and-Fan curve + OTP rows
+// (local setpoint variables).
+static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
+    uint8_t which;
+    if (avgRowSelector(subIdx, row, &which)) {
+        const ChannelStatus &s = channel_status((uint8_t)subIdx);   // SUB_CH1/2 == ch 0/1
+        int v = (which == AVG_V) ? s.avgV : s.avgI;
+        if (!s.avgValid || v < (int)AVG_MIN || v > (int)AVG_MAX) v = (int)AVG_MIN;
+        *cur = v; *lo = (int)AVG_MIN; *hi = (int)AVG_MAX;
+        return true;
+    }
+    if (subIdx == SUB_FAN) {
+        switch (row) {
+        case FANITEM_OTP:      *cur = g_sysOtpC;   *lo = 40; *hi = 120; return true;
+        case FANITEM_FANMIN:   *cur = g_fanMinPct; *lo = 0;  *hi = 100; return true;
+        case FANITEM_FANSTART: *cur = g_fanStartC; *lo = 0;  *hi = 100; return true;
+        case FANITEM_FANMAX:   *cur = g_fanMaxC;   *lo = 0;  *hi = 100; return true;
+        default: break;
+        }
+    }
+    return false;
+}
+
+// Commit an edited value to its backing store: channel averaging goes out over the
+// link; the fan/OTP setpoints are local variables the thermal service reads.
+static void commitEdit(int subIdx, int row, int value) {
+    uint8_t which;
+    if (avgRowSelector(subIdx, row, &which)) {
+        channel_set_avg((uint8_t)subIdx, which, (uint8_t)value);
+        return;
+    }
+    if (subIdx == SUB_FAN) {
+        switch (row) {
+        case FANITEM_OTP:      g_sysOtpC   = value;          break;
+        case FANITEM_FANMIN:   g_fanMinPct = (uint8_t)value; break;
+        case FANITEM_FANSTART: g_fanStartC = value;          break;
+        case FANITEM_FANMAX:   g_fanMaxC   = value;          break;
+        default: break;
+        }
+        thermalSettingsSave();   // persist the new setpoint to flash
+    }
 }
 
 // Resolve the value string for a menu row. Channel / fan rows that mirror live
@@ -615,13 +832,22 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
         case FANITEM_T2:
             if (!s2.linkUp) return "--";
             snprintf(buf, buflen, "%.0f C", s2.temp_cC / 100.0f); return buf;
-        case FANITEM_TMAX: {
-            bool any = s1.linkUp || s2.linkUp;
-            if (!any) return "--";
-            float t1 = s1.linkUp ? s1.temp_cC / 100.0f : -1e9f;
-            float t2 = s2.linkUp ? s2.temp_cC / 100.0f : -1e9f;
-            snprintf(buf, buflen, "%.0f C", t1 > t2 ? t1 : t2); return buf;
+        case FANITEM_THS: {
+            float ths = readHeatsinkTempC();
+            if (isnan(ths)) return "--";
+            snprintf(buf, buflen, "%.0f C", ths); return buf;
         }
+        case FANITEM_TMAX:                       // cached hottest of Ch1 / Ch2 / heatsink
+            if (isnan(g_tempMaxC)) return "--";
+            snprintf(buf, buflen, "%.0f C", g_tempMaxC); return buf;
+        case FANITEM_OTP:
+            snprintf(buf, buflen, "%d C", g_sysOtpC); return buf;
+        case FANITEM_FANMIN:
+            snprintf(buf, buflen, "%u %%", (unsigned)g_fanMinPct); return buf;
+        case FANITEM_FANSTART:
+            snprintf(buf, buflen, "%d C", g_fanStartC); return buf;
+        case FANITEM_FANMAX:
+            snprintf(buf, buflen, "%d C", g_fanMaxC); return buf;
         default:
             break;
         }
@@ -693,7 +919,7 @@ static void drawSubmenu() {
         const char *val;
         if (submenuEditing && i == submenuSel) {
             // Brackets flag the row as being actively edited.
-            snprintf(vbuf, sizeof(vbuf), "[%u]", (unsigned)editValue);
+            snprintf(vbuf, sizeof(vbuf), "[%d]", editValue);
             val = vbuf;
         } else {
             val = resolveMenuValue(submenuIdx, i, m.items[i], vbuf, sizeof(vbuf));
@@ -735,6 +961,12 @@ static void applySetpoints() {
 void setup() {
     Serial.begin(115200);          // USB CDC debug console (separate from the links)
 
+    EEPROM.begin(BRAIN_EEPROM_SIZE);      // flash-backed settings store
+    thermalSettingsLoad();                // restore persisted fan curve + SYS OTP
+
+    analogReadResolution(NTC_ADC_BITS);   // 12-bit ADC for the heatsink NTC on GPIO29
+    fanInit();                            // 25 kHz PWM on GPIO26 (starts at full speed)
+
     encoderInit();
     mcpInit();
     channel_link_init();           // bring up the two channel UARTs (UART0/UART1)
@@ -765,18 +997,13 @@ static void onShortPress() {
         drawSubmenu();
         break;
     case PAGE_SUBMENU: {
-        uint8_t which;
-        if (!avgRowSelector(submenuIdx, submenuSel, &which)) break;  // not editable
+        int cur, lo, hi;
+        if (!editableRow(submenuIdx, submenuSel, &cur, &lo, &hi)) break;  // not editable
         if (!submenuEditing) {
-            // Enter edit: seed from the channel's known value (fall back to min).
-            const ChannelStatus &s = channel_status((uint8_t)submenuIdx);
-            uint8_t cur = (which == AVG_V) ? s.avgV : s.avgI;
-            if (!s.avgValid || cur < AVG_MIN || cur > AVG_MAX) cur = (uint8_t)AVG_MIN;
-            editValue = cur;
+            editValue = cur; editMin = lo; editMax = hi;   // seed the editor + its range
             submenuEditing = true;
         } else {
-            // Commit: push to the channel (updates the cached value too).
-            channel_set_avg((uint8_t)submenuIdx, which, editValue);
+            commitEdit(submenuIdx, submenuSel, editValue); // channel link or local store
             submenuEditing = false;
             beep(20);
         }
@@ -837,10 +1064,10 @@ static void onRotate(int steps) {
         break;
     case PAGE_SUBMENU:
         if (submenuEditing) {
-            int v = (int)editValue + steps;
-            if (v < (int)AVG_MIN) v = (int)AVG_MIN;
-            if (v > (int)AVG_MAX) v = (int)AVG_MAX;
-            editValue = (uint8_t)v;
+            int v = editValue + steps;
+            if (v < editMin) v = editMin;
+            if (v > editMax) v = editMax;
+            editValue = v;
         } else {
             submenuSel = wrapSel(submenuSel, steps, SUBMENUS[submenuIdx].count);
         }
@@ -861,8 +1088,13 @@ static void setEditTarget(int ch, EditParam p) {
 }
 
 // Toggle a channel's output and command it over the link. The header colour will
-// follow the channel's actual state once telemetry confirms it.
+// follow the channel's actual state once telemetry confirms it. While the OTP latch
+// holds, turning an output *on* is refused (a long beep flags the block).
 static void toggleOutput(int ch) {
+    if (g_otpTripped && !outDesired[ch]) {   // over-temp: don't re-energize
+        beep(200);
+        return;
+    }
     outDesired[ch] = !outDesired[ch];
     channel_set_output((uint8_t)ch, outDesired[ch]);
     beep(20);
@@ -953,6 +1185,45 @@ static void serviceEncoder() {
         onRotate(steps);
 }
 
+// System over-temperature protection. When the governing temperature reaches the
+// SYS OTP setpoint, force both outputs off and clear the desired-on state so the link
+// resync won't re-energize them. The trip latches until the temperature falls
+// SYS_OTP_HYST_C below the setpoint; while latched, toggleOutput() refuses to turn an
+// output back on. A valid reading is required to trip (a dropped sensor won't).
+static void otpApply(float t) {
+    if (isnan(t)) return;
+    if (!g_otpTripped) {
+        if (t >= (float)g_sysOtpC) {
+            g_otpTripped = true;
+            for (int ch = 0; ch < 2; ch++) {
+                outDesired[ch] = false;
+                channel_set_output((uint8_t)ch, false);
+            }
+            beep(200);
+            if (uiPage == PAGE_MAIN) {
+                drawChannelHeader(0); drawChannelHeader(1);
+                flushDynamic(0); flushDynamic(128);
+            }
+        }
+    } else if (t < (float)g_sysOtpC - SYS_OTP_HYST_C) {
+        g_otpTripped = false;   // cooled down: manual re-enable allowed again
+    }
+}
+
+// Thermal service: sample the hottest temperature on a fixed cadence, cache it for
+// the menu, then run over-temperature protection and the fan curve from it.
+static void serviceThermal() {
+    static uint32_t last = 0;
+    uint32_t now = millis();
+    if ((uint32_t)(now - last) < FAN_UPDATE_MS) return;
+    last = now;
+
+    float t = governingTempC();
+    g_tempMaxC = t;
+    otpApply(t);   // trip first, so a trip also forces the fan to full via fanApply
+    fanApply(t);
+}
+
 // Track link up/down edges to keep the channel and panel in sync across drops:
 //  - up edge:   push setpoints + desired output so the channel matches the panel
 //               even if the brain booted after the channel (or the link glitched).
@@ -996,6 +1267,7 @@ void loop() {
     serviceMcpButtons();   // refresh button state (incl. encoder GP0) before dispatch
     serviceEncoder();
     serviceBuzzer();
+    serviceThermal();      // hottest temp -> over-temp trip + chassis fan PWM
 
     const uint32_t now = millis();
 
