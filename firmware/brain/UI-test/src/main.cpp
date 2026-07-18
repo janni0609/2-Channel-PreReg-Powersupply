@@ -432,8 +432,8 @@ struct MenuItem { const char *name; const char *value; };
 // Values are dummies until the configuration/telemetry store exists.
 static const MenuItem CHANNEL_ITEMS[] = {
     { "Temp",         "24 C"     },   // measured
-    { "Volt",         "12.47 V"  },   // measured
-    { "Curr",         "0.823 A"  },   // measured
+    { "Volt",         "12.472 V" },   // measured
+    { "Curr",         "0.8231 A" },   // measured
     { "OTP",          "80 C"     },   // setpoint 0-100 C
     { "DAC state",    "OK"       },
     { "ADC state",    "OK"       },

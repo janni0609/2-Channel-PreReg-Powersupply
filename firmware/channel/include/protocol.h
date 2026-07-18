@@ -102,9 +102,9 @@ enum {
 #define FLAG_CC_MODE       0x20u  /* reserved: in constant-current limiting */
 
 /*
- * Telemetry payload (CMD_TELEMETRY), little-endian, 14 bytes:
+ * Telemetry payload (CMD_TELEMETRY), little-endian, 16 bytes:
  *   int32  v_mV       output voltage (millivolts)
- *   int32  i_mA       output current (milliamps)
+ *   int32  i_dmA      output current (0.1 mA units, e.g. 8231 = 0.8231 A)
  *   int32  p_mW       output power   (milliwatts)   -- redundant convenience
  *   int16  temp_cC    temperature    (centi-Celsius, e.g. 2531 = 25.31 C)
  *   uint8  state      ST_*

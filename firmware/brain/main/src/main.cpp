@@ -463,9 +463,9 @@ static void updateMeasFromTelemetry() {
     const ChannelStatus &s1 = channel_status(0);
     const ChannelStatus &s2 = channel_status(1);
     ch1.measV = s1.linkUp ? s1.v_mV / 1000.0f : 0.0f;
-    ch1.measI = s1.linkUp ? s1.i_mA / 1000.0f : 0.0f;
+    ch1.measI = s1.linkUp ? s1.i_dmA / 10000.0f : 0.0f;
     ch2.measV = s2.linkUp ? s2.v_mV / 1000.0f : 0.0f;
-    ch2.measI = s2.linkUp ? s2.i_mA / 1000.0f : 0.0f;
+    ch2.measI = s2.linkUp ? s2.i_dmA / 10000.0f : 0.0f;
 }
 
 // ── Settings menu ───────────────────────────────────────────────────────────────
@@ -564,10 +564,10 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
             snprintf(buf, buflen, "%.1f C", s.temp_cC / 100.0f); return buf;
         case CHITEM_VOLT:
             if (!up) break;
-            snprintf(buf, buflen, "%.2f V", s.v_mV / 1000.0f); return buf;
+            snprintf(buf, buflen, "%.3f V", s.v_mV / 1000.0f); return buf;
         case CHITEM_CURR:
             if (!up) break;
-            snprintf(buf, buflen, "%.3f A", s.i_mA / 1000.0f); return buf;
+            snprintf(buf, buflen, "%.4f A", s.i_dmA / 10000.0f); return buf;
         case CHITEM_DAC:
             return up ? ((s.flags & FLAG_DAC_FAULT) ? "FAULT" : "OK") : "--";
         case CHITEM_ADC:

@@ -59,7 +59,7 @@ Frame: `[SOF 0xA5][LEN][CMD][payload...][CRC8]`, little-endian, CRC-8 poly
 `TELEMETRY` every 100 ms and ACK/NACKs every command; the Brain can also poll
 with `GET_STATUS`.
 
-Telemetry payload (16 B): `v_mV(i32) i_mA(i32) p_mW(i32) temp_cC(i16)
+Telemetry payload (16 B): `v_mV(i32) i_dmA(i32) p_mW(i32) temp_cC(i16)
 state(u8) flags(u8)`.
 
 ## Calibration

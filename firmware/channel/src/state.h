@@ -18,7 +18,7 @@ struct ChannelState {
 
     /* Latest measurements */
     int32_t meas_v_mV;
-    int32_t meas_i_mA;
+    int32_t meas_i_dmA;  /* measured current in 0.1 mA units (deci-milliamps) */
     int32_t meas_p_mW;
     int16_t temp_cC;     /* centi-Celsius */
 

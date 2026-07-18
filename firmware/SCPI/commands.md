@@ -150,7 +150,7 @@ every 100 ms; the Brain caches it and may force a fresh `CMD_GET_STATUS`).
 | Query | Returns | Telemetry field |
 |-------|---------|-----------------|
 | `MEASure[:SCALar]:VOLTage[:DC]? [(@list)]` | Measured output voltage (V) | `v_mV` |
-| `MEASure[:SCALar]:CURRent[:DC]? [(@list)]` | Measured output current (A) | `i_mA` |
+| `MEASure[:SCALar]:CURRent[:DC]? [(@list)]` | Measured output current (A) | `i_dmA` |
 | `MEASure[:SCALar]:POWer[:DC]? [(@list)]`   | Measured output power (W)   | `p_mW` |
 | `MEASure:TEMPerature?`                      | **System** temperature (°C) — the highest of the Brain sensor and both Channel `temp_cC` readings | max of all |
 | `MEASure:ALL? [(@list)]`                   | `V,I,P` comma-separated (per channel) | frame |
@@ -160,6 +160,10 @@ every 100 ms; the Brain caches it and may force a fresh `CMD_GET_STATUS`).
 value (the hottest of Brain + CH1 + CH2), which is also what drives OTP
 reporting. For `(@1,2)` a scalar V/I/P query returns `ch1,ch2`; `MEAS:ALL?
 (@1,2)` returns `v1,i1,p1,v2,i2,p2`.
+
+**Numeric format:** measured **voltage** is returned with **3** decimal places
+(1 mV resolution, e.g. `12.001`) and measured **current** with **4** decimal
+places (0.1 mA resolution, e.g. `0.2531`), matching the front-panel readout.
 
 ---
 
@@ -300,7 +304,7 @@ INST:NSEL 1
 APPL CH1,12.0,1.0
 OUTP ON
 MEAS:VOLT?      ; -> 12.001
-MEAS:CURR?      ; -> 0.253
+MEAS:CURR?      ; -> 0.2531
 MEAS:POW?       ; -> 3.036
 ```
 

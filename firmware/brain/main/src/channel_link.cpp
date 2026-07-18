@@ -113,7 +113,7 @@ static void handle_frame(uint8_t ch, uint8_t cmd, const uint8_t *pl, uint8_t ple
     case CMD_TELEMETRY:
         if (plen < TELEMETRY_PAYLOAD_LEN) return;    // malformed, ignore
         st.v_mV    = proto_get_i32(&pl[0]);
-        st.i_mA    = proto_get_i32(&pl[4]);
+        st.i_dmA   = proto_get_i32(&pl[4]);
         st.p_mW    = proto_get_i32(&pl[8]);
         st.temp_cC = proto_get_i16(&pl[12]);
         st.state   = proto_get_u8 (&pl[14]);

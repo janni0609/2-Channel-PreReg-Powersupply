@@ -36,7 +36,7 @@ enum { LINK_CH1 = 0, LINK_CH2 = 1, LINK_COUNT = 2 };
 struct ChannelStatus {
     /* --- decoded CMD_TELEMETRY --- */
     int32_t  v_mV;        /* measured output voltage (mV)                 */
-    int32_t  i_mA;        /* measured output current (mA)                 */
+    int32_t  i_dmA;       /* measured output current (0.1 mA units)       */
     int32_t  p_mW;        /* measured output power   (mW)                 */
     int16_t  temp_cC;     /* temperature (centi-Celsius, 2531 = 25.31 C)  */
     uint8_t  state;       /* ST_* run-state                               */

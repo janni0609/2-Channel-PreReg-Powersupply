@@ -51,14 +51,16 @@ static void process(AdsChannel ch, int16_t code)
         if (v < 0) v = 0;
         g_state.meas_v_mV = v;
     } else {
-        int32_t i = (int32_t)lroundf(cal_apply(CAL_IMEAS, volts));
+        /* cal_apply returns mA; store in 0.1 mA units so the Brain can show a
+         * real 4th decimal (the ADS1118 autoscale resolves well below 1 mA). */
+        int32_t i = (int32_t)lroundf(cal_apply(CAL_IMEAS, volts) * 10.0f);
         if (i < 0) i = 0;
-        g_state.meas_i_mA = i;
+        g_state.meas_i_dmA = i;
     }
 
-    /* Power (mW) from the latest V and I. */
+    /* Power (mW) from the latest V (mV) and I (0.1 mA): mV * dmA / 10000. */
     g_state.meas_p_mW =
-        (int32_t)(((int64_t)g_state.meas_v_mV * g_state.meas_i_mA) / 1000);
+        (int32_t)(((int64_t)g_state.meas_v_mV * g_state.meas_i_dmA) / 10000);
 
     autoscale(ch, code);   /* adjust gain for the NEXT conversion */
 }

@@ -49,7 +49,7 @@ void comms_send_telemetry()
 {
     uint8_t p[TELEMETRY_PAYLOAD_LEN];
     proto_put_i32(&p[0],  g_state.meas_v_mV);
-    proto_put_i32(&p[4],  g_state.meas_i_mA);
+    proto_put_i32(&p[4],  g_state.meas_i_dmA);
     proto_put_i32(&p[8],  g_state.meas_p_mW);
     proto_put_i16(&p[12], g_state.temp_cC);
     proto_put_u8 (&p[14], g_state.run_state);
