@@ -506,8 +506,10 @@ static EditParam editParam = EDIT_V;                         // V or I setpoint
 
 // Active digit (0..3), remembered independently for each CH / V-or-I target so
 // switching between fields restores the digit that was last edited there.
-// Indexed [channel][EditParam].
-static int selDigitFor[2][2] = { { 3, 3 }, { 3, 3 } };
+// Indexed [channel][EditParam]. Defaults: voltage on the ones digit (index 1,
+// just before the decimal); current on the tenths digit (index 1, just after
+// the decimal).
+static int selDigitFor[2][2] = { { 1, 1 }, { 1, 1 } };
 static inline int &selDigit() { return selDigitFor[editCh][editParam]; }
 
 // UI page state (the settings menu handlers live further down; declared here so
