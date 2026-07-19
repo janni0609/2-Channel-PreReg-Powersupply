@@ -5,6 +5,7 @@
 #include "hal/board.h"
 #include "config.h"
 #include "state.h"
+#include "settings.h"
 
 static float s_temp_c = 25.0f;
 static bool  s_overtemp = false;
@@ -42,10 +43,15 @@ void thermal_task()
 
     g_state.temp_cC = (int16_t)lroundf(s_temp_c * 100.0f);
 
-    if (!s_overtemp && s_temp_c >= TEMP_OTP_TRIP_C) {
+    /* Trip point is the runtime-settable per-channel OTP; re-arm a fixed
+     * hysteresis below it so a value change takes effect on the next cycle. */
+    const float trip_c  = (float)settings_otp_c();
+    const float rearm_c = trip_c - TEMP_OTP_HYST_C;
+
+    if (!s_overtemp && s_temp_c >= trip_c) {
         s_overtemp = true;
         state_set_flag(FLAG_OVERTEMP);
-    } else if (s_overtemp && s_temp_c <= TEMP_OTP_REARM_C) {
+    } else if (s_overtemp && s_temp_c <= rearm_c) {
         s_overtemp = false;
         state_clear_flag(FLAG_OVERTEMP);
     }

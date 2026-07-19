@@ -16,6 +16,16 @@ static uint8_t    s_pga[2];        /* current PGA index per channel */
 static uint32_t   s_t0;
 static float      s_vadc[2];       /* last input voltage per channel */
 
+/* Averaged raw ADC input voltage per channel: the x-sample recorded when a
+ * measure path is calibrated (CMD_CAL_POINT). An exponential moving average
+ * (alpha = 1/16, noise-equivalent to a ~31-sample window) stands in for a
+ * second ring pair, which would cost another 260 bytes of the tiny's RAM for
+ * a value only read during calibration. At the ~18 ms per-channel sample
+ * period it settles in ~1.5 s after a step; the Brain's cal wizard gates the
+ * capture behind a settle delay, so the average is warm when a point lands. */
+static float      s_vadc_avg[2];
+static bool       s_vadc_avg_seeded[2];
+
 /* Moving-average ring per channel. We keep the last AVG_MAX samples and, on
  * each update, average the most recent `n` of them (n = the Brain-set window,
  * 1..AVG_MAX). Re-summing up to 32 int32s per read is trivial at the ADC rate
@@ -58,6 +68,10 @@ void measure_init()
     s_pga[ADS_CH_I] = ADC_PGA_START_INDEX;
     s_vadc[ADS_CH_V] = 0.0f;
     s_vadc[ADS_CH_I] = 0.0f;
+    s_vadc_avg[ADS_CH_V] = 0.0f;
+    s_vadc_avg[ADS_CH_I] = 0.0f;
+    s_vadc_avg_seeded[ADS_CH_V] = false;
+    s_vadc_avg_seeded[ADS_CH_I] = false;
     s_avg[ADS_CH_V].head = s_avg[ADS_CH_V].filled = 0;
     s_avg[ADS_CH_I].head = s_avg[ADS_CH_I].filled = 0;
     s_ch = ADS_CH_V;
@@ -81,13 +95,22 @@ static void process(AdsChannel ch, int16_t code)
     const float volts = ads1118_code_to_volts(code, s_pga[ch]);
     s_vadc[ch] = volts;
 
+    /* Keep the calibration-capture average warm (seed on the first sample so
+     * boot doesn't start the average from an artificial zero). */
+    if (!s_vadc_avg_seeded[ch]) {
+        s_vadc_avg[ch] = volts;
+        s_vadc_avg_seeded[ch] = true;
+    } else {
+        s_vadc_avg[ch] += (volts - s_vadc_avg[ch]) * (1.0f / 16.0f);
+    }
+
     if (ch == ADS_CH_V) {
         int32_t v = (int32_t)lroundf(cal_apply(CAL_VMEAS, volts));
         if (v < 0) v = 0;
         g_state.meas_v_mV = avg_push(s_avg[ADS_CH_V], v, settings_avg(AVG_V));
     } else {
         /* cal_apply returns mA; store in 0.1 mA units so the Brain can show a
-         * real 4th decimal (the ADS1118 autoscale resolves well below 1 mA). */
+         * 4th decimal (1 LSB at the pinned +-4.096 V range is ~0.1 mA). */
         int32_t i = (int32_t)lroundf(cal_apply(CAL_IMEAS, volts) * 10.0f);
         if (i < 0) i = 0;
         g_state.meas_i_dmA = avg_push(s_avg[ADS_CH_I], i, settings_avg(AVG_I));
@@ -126,7 +149,7 @@ void measure_task()
 
 float measure_last_vadc(uint8_t target)
 {
-    if (target == CAL_VMEAS) return s_vadc[ADS_CH_V];
-    if (target == CAL_IMEAS) return s_vadc[ADS_CH_I];
+    if (target == CAL_VMEAS) return s_vadc_avg[ADS_CH_V];
+    if (target == CAL_IMEAS) return s_vadc_avg[ADS_CH_I];
     return 0.0f;
 }

@@ -23,4 +23,12 @@ uint8_t settings_avg(uint8_t which);
  * persist if it changed. Returns false only if `which` is not a valid selector. */
 bool settings_set_avg(uint8_t which, uint8_t count);
 
+/* Current over-temperature trip point in whole degrees Celsius
+ * (OTP_MIN_C..OTP_MAX_C). Read every thermal cycle by thermal_task(). */
+uint8_t settings_otp_c();
+
+/* Set the over-temperature trip point, clamped to OTP_MIN_C..OTP_MAX_C, and
+ * persist if it changed. Always accepts (clamps out-of-range values). */
+void settings_set_otp_c(uint8_t trip_c);
+
 #endif /* CHANNEL_SETTINGS_H */

@@ -14,8 +14,10 @@ void measure_init();
  * time; alternates between the V and I channels. */
 void measure_task();
 
-/* Latest raw ADC input voltage (volts) for a measure target (CAL_VMEAS /
- * CAL_IMEAS). Used as the x-value when calibrating a measure path. */
+/* Averaged raw ADC input voltage (volts) for a measure target (CAL_VMEAS /
+ * CAL_IMEAS). Used as the x-value when calibrating a measure path; averaged
+ * (EWMA, ~31-sample equivalent) so a captured cal point isn't one noisy
+ * sample. Needs ~1.5 s to settle after an operating-point change. */
 float measure_last_vadc(uint8_t target);
 
 #endif /* CHANNEL_MEASURE_H */

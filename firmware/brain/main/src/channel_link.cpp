@@ -95,6 +95,21 @@ void channel_set_avg(uint8_t ch, uint8_t which, uint8_t count)
     link_send(ch, CMD_SET_AVG, p, 2);
 }
 
+void channel_set_otp(uint8_t ch, uint8_t trip_c)
+{
+    if (ch >= LINK_COUNT) return;
+    if (trip_c < OTP_MIN_C) trip_c = OTP_MIN_C;
+    if (trip_c > OTP_MAX_C) trip_c = OTP_MAX_C;
+
+    // Optimistic local update so the menu shows the new value immediately; the
+    // channel's CMD_SETTINGS reply reconciles if it clamped differently.
+    s_status[ch].otpC = trip_c;
+    s_status[ch].avgValid = true;
+
+    uint8_t p[1] = { trip_c };
+    link_send(ch, CMD_SET_OTP, p, 1);
+}
+
 void channel_ping(uint8_t ch)          { link_send(ch, CMD_PING,         nullptr, 0); }
 void channel_get_status(uint8_t ch)    { link_send(ch, CMD_GET_STATUS,   nullptr, 0); }
 void channel_get_settings(uint8_t ch)  { link_send(ch, CMD_GET_SETTINGS, nullptr, 0); }
@@ -149,6 +164,7 @@ static void handle_frame(uint8_t ch, uint8_t cmd, const uint8_t *pl, uint8_t ple
         if (plen < SETTINGS_PAYLOAD_LEN) return;      // malformed, ignore
         st.avgV     = proto_get_u8(&pl[0]);
         st.avgI     = proto_get_u8(&pl[1]);
+        st.otpC     = proto_get_u8(&pl[2]);
         st.avgValid = true;
         break;
 
@@ -261,6 +277,11 @@ void channel_link_task()
             s_status[ch].linkUp = false;
         }
     }
+}
+
+void channel_clear_last_ack(uint8_t ch)
+{
+    if (ch < LINK_COUNT) s_status[ch].lastAckCmd = 0;
 }
 
 const ChannelStatus &channel_status(uint8_t ch)

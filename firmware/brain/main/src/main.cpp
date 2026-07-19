@@ -450,7 +450,7 @@ static inline int &selDigit() { return selDigitFor[editCh][editParam]; }
 
 // UI page state (the settings menu handlers live further down; declared here so
 // the set-strip drawing knows to show the digit cursor only on the main page).
-enum UiPage : uint8_t { PAGE_MAIN, PAGE_SETTINGS, PAGE_SUBMENU };
+enum UiPage : uint8_t { PAGE_MAIN, PAGE_SETTINGS, PAGE_SUBMENU, PAGE_CAL };
 static UiPage uiPage = PAGE_MAIN;
 
 // ── Channel link push helpers ───────────────────────────────────────────────────
@@ -650,7 +650,7 @@ struct MenuItem { const char *name; const char *value; };
 enum {
     CHITEM_TEMP = 0, CHITEM_VOLT, CHITEM_CURR, CHITEM_AVGV, CHITEM_AVGI,
     CHITEM_OTP, CHITEM_DAC, CHITEM_ADC, CHITEM_COMM, CHITEM_RUNTIME,
-    CHITEM_CALV, CHITEM_CALI, CHITEM_MANV, CHITEM_MANI
+    CHITEM_MANV, CHITEM_MANI
 };
 static const MenuItem CHANNEL_ITEMS[] = {
     { "Temp",         "-- C"     },   // live: measured
@@ -658,15 +658,13 @@ static const MenuItem CHANNEL_ITEMS[] = {
     { "Curr",         "-- A"     },   // live: measured
     { "Avg V",        "--"       },   // editable: V measurement averaging (1..32)
     { "Avg I",        "--"       },   // editable: I measurement averaging (1..32)
-    { "OTP",          "80 C"     },   // setpoint 0-100 C (placeholder)
+    { "OTP",          "--"       },   // editable: per-channel over-temp trip (deg C)
     { "DAC state",    "--"       },   // live: telemetry flag
     { "ADC state",    "--"       },   // live: telemetry flag
     { "Comm",         "--"       },   // live: link up/down
     { "Runtime",      "0 h"      },   // read from channel (placeholder)
-    { "Cal values V", "View"     },   // read from channel, displayed (placeholder)
-    { "Cal values I", "View"     },
-    { "Manual Cal V", "Hold"     },   // enter cal procedure (needs confirm)
-    { "Manual Cal I", "Hold"     },
+    { "Manual Cal V", "Start"    },   // enter cal wizard (confirmed w/ CHx V button)
+    { "Manual Cal I", "Start"    },
 };
 enum { FANITEM_T1 = 0, FANITEM_T2, FANITEM_THS, FANITEM_TMAX,
        FANITEM_OTP, FANITEM_FANMIN, FANITEM_FANSTART, FANITEM_FANMAX };
@@ -753,6 +751,13 @@ static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
         *cur = v; *lo = (int)AVG_MIN; *hi = (int)AVG_MAX;
         return true;
     }
+    if ((subIdx == SUB_CH1 || subIdx == SUB_CH2) && row == CHITEM_OTP) {
+        const ChannelStatus &s = channel_status((uint8_t)subIdx);   // SUB_CH1/2 == ch 0/1
+        int v = s.otpC;
+        if (!s.avgValid || v < (int)OTP_MIN_C || v > (int)OTP_MAX_C) v = (int)OTP_MIN_C;
+        *cur = v; *lo = (int)OTP_MIN_C; *hi = (int)OTP_MAX_C;
+        return true;
+    }
     if (subIdx == SUB_FAN) {
         switch (row) {
         case FANITEM_OTP:      *cur = g_sysOtpC;   *lo = 40; *hi = 120; return true;
@@ -771,6 +776,10 @@ static void commitEdit(int subIdx, int row, int value) {
     uint8_t which;
     if (avgRowSelector(subIdx, row, &which)) {
         channel_set_avg((uint8_t)subIdx, which, (uint8_t)value);
+        return;
+    }
+    if ((subIdx == SUB_CH1 || subIdx == SUB_CH2) && row == CHITEM_OTP) {
+        channel_set_otp((uint8_t)subIdx, (uint8_t)value);
         return;
     }
     if (subIdx == SUB_FAN) {
@@ -814,6 +823,9 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
         case CHITEM_AVGI:
             if (!s.avgValid) break;
             snprintf(buf, buflen, "%u", (unsigned)s.avgI); return buf;
+        case CHITEM_OTP:
+            if (!s.avgValid) break;
+            snprintf(buf, buflen, "%u C", (unsigned)s.otpC); return buf;
         default:
             break;
         }
@@ -930,6 +942,271 @@ static void drawSubmenu() {
     display.flush();
 }
 
+// ── Manual calibration wizard (PAGE_CAL) ───────────────────────────────────────
+// Guided 2-point calibration of one channel's voltage or current paths. One run
+// drives the output to two known operating points; at each, the operator reads an
+// external multimeter and dials the reading in with the encoder. Every captured
+// point is sent for BOTH the set path and the measure path (the channel pairs the
+// entered value with the DAC code it drove resp. its averaged raw ADC voltage),
+// so a single run calibrates CAL_xSET and CAL_xMEAS together.
+//
+// Controls: the wizard is started from the channel submenu and must be confirmed
+// by pressing the VOLTAGE button of the channel being calibrated; the same button
+// then advances every step (continue / capture / done). Encoder short press moves
+// the entry digit, rotation steps it, and a long press aborts at any time (output
+// off, user setpoints restored). All other front-panel buttons are inert.
+enum CalStep : uint8_t {
+    CAL_S_CONFIRM,   // safety gate: waiting for the CHx V button
+    CAL_S_CONNECT,   // multimeter hook-up instructions shown
+    CAL_S_ENTRY,     // output driven to a point; operator enters the DMM reading
+    CAL_S_DONE,      // both points captured + committed (ACK-verified), output off
+    CAL_S_ERROR      // the channel never acknowledged a point/commit frame
+};
+static int       calCh    = 0;         // channel being calibrated (0/1)
+static EditParam calParam = EDIT_V;    // EDIT_V = voltage paths, EDIT_I = current paths
+static CalStep   calStep  = CAL_S_CONFIRM;
+static int       calPoint = 0;         // which of the two cal points is active (0/1)
+static int32_t   calEntry = 0;         // dialled-in DMM reading (mV or 0.1 mA units)
+static int       calDigit = 0;         // digit cursor in the entry field (0..4)
+static uint32_t  calEntryMs = 0;       // entry-step start; gates capture until settled
+
+// Driven operating points. Voltage cal runs open-circuit (current limit only as a
+// safety net), spanning most of the 0..36 V range; current cal shorts the output
+// through the DMM's ammeter input, with a few volts of compliance, spanning most
+// of the 0..2 A range while staying inside a typical 2 A DMM range.
+static const int32_t CALV_POINT_MV[2]  = { 2000, 30000 };   // 2 V / 30 V
+static const int32_t CALV_ILIM_MA      = 200;               // I limit during V cal
+static const int32_t CALI_POINT_DMA[2] = { 2000, 18000 };   // 0.2 A / 1.8 A (0.1 mA)
+static const int32_t CALI_VSET_MV      = 5000;              // compliance V during I cal
+
+// Capture is refused until the channel's averaged raw-ADC value (EWMA, ~1.5 s
+// step settling) and the output itself have settled at the new point.
+static const uint32_t CAL_SETTLE_MS    = 3000;
+
+// Entry field: 5 editable digits. V is dialled in mV as "02.000", I in 0.1 mA
+// as "0.2000" — the per-digit step is 10^(4-digit) base units for both.
+static const int32_t CAL_ENTRY_STEP[5]  = { 10000, 1000, 100, 10, 1 };
+static const uint8_t CAL_DIGIT_POS_V[5] = { 0, 1, 3, 4, 5 };   // "02.000"
+static const uint8_t CAL_DIGIT_POS_I[5] = { 0, 2, 3, 4, 5 };   // "0.2000"
+
+// The expander bit of the confirm key: the V button of the calibrated channel.
+static inline uint8_t calConfirmBit() { return calCh == 0 ? MCP_CH1_V : MCP_CH2_V; }
+
+// ── Verified (ACK-checked) delivery of the cal transaction ──
+// Cal frames must not be fire-and-forget: CMD_CAL_COMMIT makes the channel do a
+// blocking EEPROM write, and a frame sent right behind it can be dropped while
+// the write runs. That silently lost the VMEAS commit in the field — set path
+// calibrated, measure path left on defaults, wizard still claiming success.
+// Waiting for each ACK both verifies delivery and paces the next frame past the
+// write window (the channel only ACKs a commit after its EEPROM write is done).
+static bool calAwaitAck(uint8_t ackCmd, uint32_t timeoutMs) {
+    const uint32_t t0 = millis();
+    while ((uint32_t)(millis() - t0) < timeoutMs) {
+        channel_link_task();
+        if (channel_status((uint8_t)calCh).lastAckCmd == ackCmd) return true;
+    }
+    return false;
+}
+
+static bool calSendPoint(uint8_t target, uint8_t index, int32_t actual) {
+    for (int attempt = 0; attempt < 3; attempt++) {   // idempotent: retry freely
+        channel_clear_last_ack((uint8_t)calCh);
+        channel_cal_point((uint8_t)calCh, target, index, actual);
+        if (calAwaitAck(CMD_CAL_POINT, 100)) return true;
+    }
+    return false;
+}
+
+static bool calSendCommit(uint8_t target) {
+    for (int attempt = 0; attempt < 3; attempt++) {   // commit keeps its points, so
+        channel_clear_last_ack((uint8_t)calCh);       // a re-send is idempotent too
+        channel_cal_commit((uint8_t)calCh, target);
+        if (calAwaitAck(CMD_CAL_COMMIT, 300)) return true;  // EEPROM write inside
+    }
+    return false;
+}
+
+static bool calSettled() {
+    return (uint32_t)(millis() - calEntryMs) >= CAL_SETTLE_MS;
+}
+
+static void drawCalPage() {
+    char title[24], buf[44];
+    const bool isV = (calParam == EDIT_V);
+    snprintf(title, sizeof(title), "MANUAL CAL %s  CH%d", isV ? "V" : "I", calCh + 1);
+    drawMenuHeader(title);
+
+    const int y0 = MENU_Y0, dy = MENU_DY;
+    switch (calStep) {
+    case CAL_S_CONFIRM:
+        snprintf(buf, sizeof(buf), "Calibrates CH%d %s set + meas paths.",
+                 calCh + 1, isV ? "voltage" : "current");
+        display.drawText(10, y0,          buf, G_NUM, 0);
+        display.drawText(10, y0 + dy,     "The output will be driven ON.", G_NUM, 0);
+        snprintf(buf, sizeof(buf), "Press the CH%d V button to start", calCh + 1);
+        display.drawText(10, y0 + 2 * dy, buf, G_BIG, 0);
+        display.drawText(10, y0 + 3 * dy, "Hold encoder: cancel", G_DIM, 0);
+        break;
+
+    case CAL_S_CONNECT:
+        if (isV) {
+            display.drawText(10, y0,      "Multimeter: DC VOLTAGE mode, probes", G_NUM, 0);
+            snprintf(buf, sizeof(buf), "across the CH%d output terminals.", calCh + 1);
+            display.drawText(10, y0 + dy, buf, G_NUM, 0);
+            display.drawText(10, y0 + 2 * dy, "Disconnect any other load.", G_NUM, 0);
+        } else {
+            display.drawText(10, y0,      "Multimeter: CURRENT mode (2A range),", G_NUM, 0);
+            snprintf(buf, sizeof(buf), "directly across the CH%d output.", calCh + 1);
+            display.drawText(10, y0 + dy, buf, G_NUM, 0);
+            display.drawText(10, y0 + 2 * dy, "No other load: the DMM carries 1.8A.", G_NUM, 0);
+        }
+        snprintf(buf, sizeof(buf), "CH%d V: output ON + continue", calCh + 1);
+        display.drawText(10, y0 + 3 * dy, buf, G_BIG, 0);
+        break;
+
+    case CAL_S_ENTRY: {
+        const ChannelStatus &s = channel_status((uint8_t)calCh);
+        if (isV)
+            snprintf(buf, sizeof(buf), "Point %d/2   set %.3fV   meas %.3fV",
+                     calPoint + 1, CALV_POINT_MV[calPoint] / 1000.0f, s.v_mV / 1000.0f);
+        else
+            snprintf(buf, sizeof(buf), "Point %d/2   set %.4fA   meas %.4fA",
+                     calPoint + 1, CALI_POINT_DMA[calPoint] / 10000.0f, s.i_dmA / 10000.0f);
+        display.drawText(10, y0,      buf, G_NUM, 0);
+        display.drawText(10, y0 + dy, "Enter the multimeter reading:", G_NUM, 0);
+
+        // Entry field with the active digit bright + underlined (like the SET strip).
+        char field[8];
+        if (isV) snprintf(field, sizeof(field), "%06.3f", calEntry / 1000.0f);
+        else     snprintf(field, sizeof(field), "%.4f",   calEntry / 10000.0f);
+        const uint8_t *pos = isV ? CAL_DIGIT_POS_V : CAL_DIGIT_POS_I;
+        const int curPos = pos[calDigit];
+        const int yf = y0 + 2 * dy;
+        for (int i = 0; field[i]; i++) {
+            char cs[2] = { field[i], 0 };
+            int x = 10 + i * 6;
+            display.drawText(x, yf, cs, i == curPos ? G_BIG : G_SET, 0);
+            if (i == curPos)
+                display.drawLine(x, yf + 7, x + 4, yf + 7, G_BIG);
+        }
+        display.drawText(10 + 7 * 6, yf, isV ? "V" : "A", G_DIM, 0);
+
+        if (!calSettled())
+            display.drawText(10, y0 + 3 * dy, "Settling / averaging...", G_DIM, 0);
+        else {
+            snprintf(buf, sizeof(buf), "CH%d V: capture  Enc: digit  Hold: abort", calCh + 1);
+            display.drawText(10, y0 + 3 * dy, buf, G_DIM, 0);
+        }
+        break;
+    }
+
+    case CAL_S_DONE:
+        display.drawText(10, y0,      "Calibration stored in the channel.", G_NUM, 0);
+        display.drawText(10, y0 + dy, "Output is OFF.", G_NUM, 0);
+        snprintf(buf, sizeof(buf), "CH%d V: done", calCh + 1);
+        display.drawText(10, y0 + 2 * dy, buf, G_BIG, 0);
+        break;
+
+    case CAL_S_ERROR:
+        display.drawText(10, y0,      "Channel did not confirm storing!", G_NUM, 0);
+        display.drawText(10, y0 + dy, "Calibration may be partly applied.", G_NUM, 0);
+        display.drawText(10, y0 + 2 * dy, "Re-run the procedure.", G_NUM, 0);
+        snprintf(buf, sizeof(buf), "CH%d V: exit", calCh + 1);
+        display.drawText(10, y0 + 3 * dy, buf, G_BIG, 0);
+        break;
+    }
+    display.flush();
+}
+
+// Command the output to one of the two cal points and (re)open the entry step,
+// seeding the entry field with the nominal value so only the error is dialled in.
+static void calApplyPoint(int point) {
+    calPoint = point;
+    if (calParam == EDIT_V) {
+        channel_set_current((uint8_t)calCh, CALV_ILIM_MA);
+        channel_set_voltage((uint8_t)calCh, CALV_POINT_MV[point]);
+        calEntry = CALV_POINT_MV[point];
+    } else {
+        channel_set_voltage((uint8_t)calCh, CALI_VSET_MV);
+        channel_set_current((uint8_t)calCh, CALI_POINT_DMA[point] / 10);
+        calEntry = CALI_POINT_DMA[point];
+    }
+    calDigit   = 3;              // start on a mid-significance digit
+    calEntryMs = millis();
+    calStep    = CAL_S_ENTRY;
+}
+
+// Leave the wizard from any step: output off, user setpoints restored, back to
+// the channel submenu. Serves both abort (long press) and the normal exit.
+static void calExit() {
+    channel_set_output((uint8_t)calCh, false);
+    pushSetVoltage(calCh);
+    pushSetCurrent(calCh);
+    uiPage = PAGE_SUBMENU;
+    drawSubmenu();
+}
+
+// Enter the wizard from the channel submenu. The output is forced off first so
+// calibration never starts on a live output; outDesired stays cleared so the
+// exit path leaves the channel off as well.
+static void calStart(int ch, EditParam p) {
+    calCh    = ch;
+    calParam = p;
+    calStep  = CAL_S_CONFIRM;
+    outDesired[ch] = false;
+    channel_set_output((uint8_t)ch, false);
+    uiPage = PAGE_CAL;
+    drawCalPage();
+}
+
+// The confirm key (CHx V button) advances the wizard one step.
+static void calConfirmPress() {
+    switch (calStep) {
+    case CAL_S_CONFIRM:
+        calStep = CAL_S_CONNECT;
+        beep(20);
+        drawCalPage();
+        break;
+
+    case CAL_S_CONNECT:
+        channel_set_output((uint8_t)calCh, true);
+        calApplyPoint(0);
+        beep(20);
+        drawCalPage();
+        break;
+
+    case CAL_S_ENTRY: {
+        if (!calSettled()) { beep(100); break; }   // averaging still warming up
+        const uint8_t tSet  = (calParam == EDIT_V) ? CAL_VSET  : CAL_ISET;
+        const uint8_t tMeas = (calParam == EDIT_V) ? CAL_VMEAS : CAL_IMEAS;
+
+        bool ok = calSendPoint(tSet,  (uint8_t)calPoint, calEntry) &&
+                  calSendPoint(tMeas, (uint8_t)calPoint, calEntry);
+        if (ok && calPoint == 0) {
+            beep(20);
+            calApplyPoint(1);
+            drawCalPage();
+            break;
+        }
+        if (ok)
+            ok = calSendCommit(tSet) && calSendCommit(tMeas);
+
+        channel_set_output((uint8_t)calCh, false);
+        pushSetVoltage(calCh);         // re-apply user setpoints through the new cal
+        pushSetCurrent(calCh);
+        calStep = ok ? CAL_S_DONE : CAL_S_ERROR;
+        beep(ok ? 20 : 200);
+        drawCalPage();
+        break;
+    }
+
+    case CAL_S_DONE:
+    case CAL_S_ERROR:
+        calExit();
+        break;
+    }
+}
+
 // Full repaint of the dual-channel readout, used when leaving the menus.
 static void drawMainPage() {
     display.clear(0);
@@ -997,6 +1274,14 @@ static void onShortPress() {
         drawSubmenu();
         break;
     case PAGE_SUBMENU: {
+        // The Manual Cal rows launch the calibration wizard (link must be up;
+        // the channel is the one whose submenu is open).
+        if ((submenuIdx == SUB_CH1 || submenuIdx == SUB_CH2) && !submenuEditing &&
+            (submenuSel == CHITEM_MANV || submenuSel == CHITEM_MANI)) {
+            if (!channel_status((uint8_t)submenuIdx).linkUp) { beep(200); break; }
+            calStart(submenuIdx, submenuSel == CHITEM_MANV ? EDIT_V : EDIT_I);
+            break;
+        }
         int cur, lo, hi;
         if (!editableRow(submenuIdx, submenuSel, &cur, &lo, &hi)) break;  // not editable
         if (!submenuEditing) {
@@ -1010,6 +1295,12 @@ static void onShortPress() {
         drawSubmenu();
         break;
     }
+    case PAGE_CAL:
+        if (calStep == CAL_S_ENTRY) {          // cycle the entry-field digit cursor
+            calDigit = (calDigit + 1) % 5;
+            drawCalPage();
+        }
+        break;
     }
 }
 
@@ -1033,6 +1324,10 @@ static void onLongPress() {
             uiPage = PAGE_SETTINGS;
             drawSettingsOverview();
         }
+        break;
+    case PAGE_CAL:
+        calExit();                    // abort: output off, setpoints restored
+        beep(20);
         break;
     }
 }
@@ -1073,6 +1368,16 @@ static void onRotate(int steps) {
         }
         drawSubmenu();
         break;
+    case PAGE_CAL:
+        if (calStep == CAL_S_ENTRY) {          // step the selected entry digit
+            const int32_t max = (calParam == EDIT_V) ? SETV_MAX_CV * 10   // 36000 mV
+                                                     : SETI_MAX_MA * 10;  // 20000 dmA
+            calEntry += (int32_t)steps * CAL_ENTRY_STEP[calDigit];
+            if (calEntry < 0)   calEntry = 0;
+            if (calEntry > max) calEntry = max;
+            drawCalPage();
+        }
+        break;
     }
 }
 
@@ -1103,6 +1408,12 @@ static void toggleOutput(int ch) {
 
 // Handle a fresh press of a non-encoder expander button.
 static void onButtonPress(uint8_t bit) {
+    if (uiPage == PAGE_CAL) {
+        // Only the calibrated channel's V button (the confirm key) acts during
+        // the wizard; every other front-panel button is inert.
+        if (bit == calConfirmBit()) calConfirmPress();
+        return;
+    }
     switch (bit) {
     case MCP_CH1_V:  setEditTarget(0, EDIT_V); break;
     case MCP_CH1_I:  setEditTarget(0, EDIT_I); break;
@@ -1283,6 +1594,20 @@ void loop() {
             drawDynamic(ch2, 128);
             flushDynamic(0);
             flushDynamic(128);
+        }
+    } else if (uiPage == PAGE_CAL) {
+        if (!channel_status((uint8_t)calCh).linkUp || g_otpTripped) {
+            // Lost the channel or over-temperature: abandon the calibration.
+            beep(200);
+            calExit();
+        } else if (calStep == CAL_S_ENTRY) {
+            // Refresh the entry page so the live measurement and the
+            // settling banner keep tracking.
+            static uint32_t lastCal = 0;
+            if ((uint32_t)(now - lastCal) >= 300) {
+                lastCal = now;
+                drawCalPage();
+            }
         }
     } else if (uiPage == PAGE_SUBMENU && submenuIdx <= SUB_FAN) {
         // Channel / fan submenus mirror live telemetry; refresh them a few times a

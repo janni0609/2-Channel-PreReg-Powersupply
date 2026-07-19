@@ -33,12 +33,15 @@ void storage_save(CalStore *in);
  * settings never risks invalidating (and wiping) the calibration coefficients,
  * and vice-versa. Holds the per-measurement averaging window lengths. */
 #define SETTINGS_STORE_MAGIC    0x53455431UL  /* 'S''E''T''1' */
-#define SETTINGS_STORE_VERSION  1
+/* v2: added otp_c (per-channel over-temperature trip point). Bumping the
+ * version re-seeds any v1 blob so otp_c takes its default instead of garbage. */
+#define SETTINGS_STORE_VERSION  2
 
 struct SettingsStore {
     uint32_t magic;
     uint16_t version;
     uint8_t  avg[AVG_COUNT]; /* [AVG_V], [AVG_I] moving-average window length */
+    uint8_t  otp_c;          /* over-temperature trip point, deg C           */
     uint16_t crc;            /* CRC16 over all preceding bytes */
 };
 

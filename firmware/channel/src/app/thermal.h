@@ -18,8 +18,8 @@ void  thermal_task();
 /* Current temperature in degrees Celsius. */
 float thermal_temp_c();
 
-/* True while over-temperature (trips at TEMP_OTP_TRIP_C, clears below
- * TEMP_OTP_REARM_C - hysteresis prevents chatter). */
+/* True while over-temperature (trips at the runtime-settable per-channel OTP
+ * point, clears TEMP_OTP_HYST_C below it - hysteresis prevents chatter). */
 bool  thermal_overtemp();
 
 #endif /* CHANNEL_THERMAL_H */

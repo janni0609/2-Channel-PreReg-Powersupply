@@ -45,6 +45,7 @@ struct ChannelStatus {
     /* --- per-channel settings (from CMD_SETTINGS) --- */
     uint8_t  avgV;        /* voltage measurement averaging window (1..32)  */
     uint8_t  avgI;        /* current measurement averaging window (1..32)  */
+    uint8_t  otpC;        /* over-temperature trip point, deg C            */
     bool     avgValid;    /* true once CMD_SETTINGS has been received       */
 
     /* --- link health / bookkeeping --- */
@@ -76,6 +77,10 @@ void channel_set_output (uint8_t ch, bool on);
  * Updates the cached ChannelStatus optimistically so the UI reflects it at once;
  * the channel confirms with a CMD_SETTINGS reply. */
 void channel_set_avg    (uint8_t ch, uint8_t which, uint8_t count);
+/* Set the over-temperature trip point (deg C, clamped to OTP_MIN_C..OTP_MAX_C).
+ * Updates the cached ChannelStatus optimistically; the channel confirms with a
+ * CMD_SETTINGS reply. */
+void channel_set_otp    (uint8_t ch, uint8_t trip_c);
 void channel_ping       (uint8_t ch);
 void channel_get_status (uint8_t ch);
 void channel_get_settings(uint8_t ch);
@@ -83,6 +88,12 @@ void channel_reset_fault(uint8_t ch);
 void channel_cal_point  (uint8_t ch, uint8_t target, uint8_t index, int32_t actual);
 void channel_cal_commit (uint8_t ch, uint8_t target);
 void channel_cal_reset  (uint8_t ch, uint8_t target);
+
+/* Clear the recorded last-ACK command id so a caller can send a frame and then
+ * poll channel_status(ch).lastAckCmd to verify THAT frame was acknowledged
+ * (frames are processed in order, so after a clear the next matching ACK
+ * belongs to the frame just sent). */
+void channel_clear_last_ack(uint8_t ch);
 
 /* Read-only access to the latest snapshot for channel `ch` (0/1). */
 const ChannelStatus &channel_status(uint8_t ch);

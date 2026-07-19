@@ -47,8 +47,11 @@
 /* ------------------------------------------------------------------ */
 /* Thermal protection                                                 */
 /* ------------------------------------------------------------------ */
-#define TEMP_OTP_TRIP_C     60.0f      /* shut output off at/above this   */
-#define TEMP_OTP_REARM_C    55.0f      /* allow recovery below this       */
+/* The trip point is runtime-settable per channel (CMD_SET_OTP, persisted in
+ * the settings EEPROM, clamped to OTP_MIN_C..OTP_MAX_C). This is only the value
+ * used to seed a blank EEPROM. Recovery is TEMP_OTP_HYST_C below the trip. */
+#define TEMP_OTP_DEFAULT_C  60u        /* shut output off at/above this   */
+#define TEMP_OTP_HYST_C     5.0f       /* re-arm this far below the trip  */
 
 /* ------------------------------------------------------------------ */
 /* Comms-loss watchdog                                                */
@@ -70,11 +73,20 @@
 /* ------------------------------------------------------------------ */
 /* ADC (ADS1118)                                                      */
 /* ------------------------------------------------------------------ */
-/* Front-end full scale sits near +-4.096 V; start there and let the
- * autoscaler raise gain for small signals. Indices map to ADS1118 PGA. */
+/* Front-end full scale sits near +-4.096 V. Indices map to ADS1118 PGA.
+ *
+ * The PGA is PINNED to +-4.096 V (MAX == MIN disables the autoscaler in
+ * measure.cpp): each PGA range has its own gain/offset error and its own
+ * input impedance loading the sense divider, so with autoscaling the measure
+ * path is a different transfer function per range. A single 2-point cal line
+ * cannot model that -- readings were only correct at the two cal points and
+ * drifted by the inter-range mismatch everywhere else. One fixed range gives
+ * one consistent line. LSB at +-4.096: ~1.9 mV / ~0.1 mA at the output,
+ * matching the display resolution; averaging covers the last digit.
+ * (Re-enable autoscale only together with a per-range calibration scheme.) */
 #define ADC_PGA_START_INDEX     1u     /* 001 = +-4.096 V                 */
 #define ADC_PGA_MIN_INDEX       1u     /* never below this (>= no benefit)*/
-#define ADC_PGA_MAX_INDEX       5u     /* 101 = +-0.256 V (max gain)      */
+#define ADC_PGA_MAX_INDEX       1u     /* pinned to +-4.096 V (see above) */
 #define ADC_AUTOSCALE_UP_PCT    88     /* |code| above % FS -> lower gain */
 #define ADC_AUTOSCALE_DN_PCT    42     /* |code| below % FS -> higher gain*/
 

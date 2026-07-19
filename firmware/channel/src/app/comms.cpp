@@ -63,6 +63,7 @@ static void send_settings()
     uint8_t p[SETTINGS_PAYLOAD_LEN];
     proto_put_u8(&p[0], settings_avg(AVG_V));
     proto_put_u8(&p[1], settings_avg(AVG_I));
+    proto_put_u8(&p[2], settings_otp_c());
     send_frame(CMD_SETTINGS, p, SETTINGS_PAYLOAD_LEN);
 }
 
@@ -98,6 +99,12 @@ static void handle(uint8_t cmd, const uint8_t *pl, uint8_t plen)
         send_ack(cmd);
         break;
 
+    case CMD_SET_OTP:
+        if (plen < 1) { send_nack(cmd, NACK_BAD_LEN); break; }
+        settings_set_otp_c(pl[0]);     /* clamps to OTP_MIN_C..OTP_MAX_C */
+        send_ack(cmd);
+        break;
+
     case CMD_GET_STATUS:
         comms_send_telemetry();
         break;
@@ -113,14 +120,18 @@ static void handle(uint8_t cmd, const uint8_t *pl, uint8_t plen)
         const int32_t actual = proto_get_i32(&pl[2]);
         if (target >= CAL_COUNT || index > 1) { send_nack(cmd, NACK_BAD_PARAM); break; }
 
+        /* `actual` arrives in mV for the V targets and 0.1 mA for the I
+         * targets; the cal coefficients work in mV / mA, so I scales /10. */
+        const bool  isI = (target == CAL_ISET || target == CAL_IMEAS);
+        const float eng = isI ? (float)actual * 0.1f : (float)actual;
+
         if (target == CAL_VSET || target == CAL_ISET) {
             /* x = externally measured value, y = the code we drove */
-            cal_record_point(target, index, (float)actual,
+            cal_record_point(target, index, eng,
                              (float)setpoint_last_code(target));
         } else {
-            /* x = our raw ADC volts, y = externally measured value */
-            cal_record_point(target, index, measure_last_vadc(target),
-                             (float)actual);
+            /* x = our averaged raw ADC volts, y = externally measured value */
+            cal_record_point(target, index, measure_last_vadc(target), eng);
         }
         send_ack(cmd);
         break;

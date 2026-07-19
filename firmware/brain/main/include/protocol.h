@@ -41,9 +41,11 @@ enum {
     CMD_SET_CURRENT   = 0x11,  /* int32 mA                                   */
     CMD_SET_OUTPUT    = 0x12,  /* uint8 (0=off, 1=on)                        */
     CMD_SET_AVG       = 0x13,  /* uint8 which (AVG_*), uint8 count (1..32)   */
+    CMD_SET_OTP       = 0x14,  /* uint8 trip_c (OTP_MIN_C..OTP_MAX_C)        */
     CMD_GET_STATUS    = 0x20,  /* no payload -> replies CMD_TELEMETRY        */
     CMD_GET_SETTINGS  = 0x21,  /* no payload -> replies CMD_SETTINGS         */
-    CMD_CAL_POINT     = 0x30,  /* uint8 target, uint8 index, int32 actual    */
+    CMD_CAL_POINT     = 0x30,  /* uint8 target, uint8 index, int32 actual
+                                  (mV for V targets, 0.1 mA for I targets)   */
     CMD_CAL_COMMIT    = 0x31,  /* uint8 target                               */
     CMD_CAL_RESET     = 0x32,  /* uint8 target (restore defaults)            */
     CMD_RESET_FAULT   = 0x40,  /* no payload                                 */
@@ -53,7 +55,7 @@ enum {
     CMD_ACK           = 0x81,  /* uint8 acked_cmd                            */
     CMD_NACK          = 0x82,  /* uint8 acked_cmd, uint8 reason              */
     CMD_EVENT         = 0x83,  /* uint8 event_code                           */
-    CMD_SETTINGS      = 0x84   /* uint8 avg_v, uint8 avg_i (see below)       */
+    CMD_SETTINGS      = 0x84   /* uint8 avg_v, avg_i, otp_c (see below)      */
 };
 
 /* ---- Measurement-averaging selector (CMD_SET_AVG 'which' byte) ----------- */
@@ -67,6 +69,13 @@ enum {
 };
 #define AVG_MIN   1u
 #define AVG_MAX   32u
+
+/* ---- Per-channel over-temperature protection (CMD_SET_OTP) --------------- */
+/* Over-temperature trip point in whole degrees Celsius. The channel shuts its
+ * output off at/above this NTC temperature and re-arms OTP_HYST_C below it. The
+ * value is persisted in the channel's EEPROM and reported via CMD_SETTINGS. */
+#define OTP_MIN_C   40u
+#define OTP_MAX_C   100u
 
 /* ---- Calibration targets ------------------------------------------------ */
 enum {
@@ -132,8 +141,9 @@ enum {
  * Settings payload (CMD_SETTINGS), the channel's reply to CMD_GET_SETTINGS:
  *   uint8  avg_v      voltage measurement averaging window (AVG_MIN..AVG_MAX)
  *   uint8  avg_i      current measurement averaging window (AVG_MIN..AVG_MAX)
+ *   uint8  otp_c      over-temperature trip point, deg C   (OTP_MIN_C..OTP_MAX_C)
  */
-#define SETTINGS_PAYLOAD_LEN   2u
+#define SETTINGS_PAYLOAD_LEN   3u
 
 /* ---- CRC-8 (poly 0x07, init 0x00) --------------------------------------- */
 static inline uint8_t proto_crc8(const uint8_t *data, uint8_t len)

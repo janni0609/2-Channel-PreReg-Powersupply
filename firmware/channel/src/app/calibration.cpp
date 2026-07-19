@@ -90,7 +90,10 @@ bool cal_commit(uint8_t target)
     s_store.coeff[target].offset = offset;
     storage_save(&s_store);
 
-    p.have[0] = p.have[1] = false;
+    /* The points are deliberately KEPT: the Brain re-sends a commit when its
+     * ACK got lost, and a re-commit of the same points must succeed (it just
+     * recomputes the identical line). A fresh cal run overwrites the points
+     * before it commits, so nothing stale is ever committed. */
 
     /* A successful commit on every target clears the "invalid" flag once all
      * paths have at least been touched; for simplicity we clear it here since
