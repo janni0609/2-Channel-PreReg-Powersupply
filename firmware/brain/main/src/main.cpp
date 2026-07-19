@@ -500,6 +500,78 @@ static int32_t setI_mA[2] = { 1000, 2000 };                  // CH1 1.000 A, CH2
 // channel over the link). The channel's *actual* state comes back in telemetry.
 static bool outDesired[2] = { false, false };
 
+// ── Persistent setpoints ("Remember set" — flash-backed EEPROM emulation) ──────
+// When the System-menu "Remember set" flag is on, the four V/I setpoints are
+// restored at boot so the supply comes up where it left off. Its own blob
+// (magic/version/CRC) in a separate EEPROM slot from the thermal / runtime stores.
+// The flag itself is always persisted so the choice survives a reboot; the
+// setpoints are only re-applied at load when the flag is on. Saves are debounced
+// (serviceSetpointPersist) so a burst of encoder edits collapses into one flash
+// write, bounding sector-erase wear.
+#define SETPOINT_STORE_ADDR    64
+#define SETPOINT_STORE_MAGIC   0x53455431u   /* 'SET1' */
+#define SETPOINT_STORE_VERSION 1
+
+static bool g_rememberSet = true;   // System-menu flag: restore setpoints on boot
+
+struct SetpointStore {
+    uint32_t magic;
+    uint16_t version;
+    uint8_t  rememberSet;
+    uint8_t  reserved;
+    int32_t  setV_cV[2];
+    int32_t  setI_mA[2];
+    uint16_t crc;
+};
+
+static void setpointsSave() {
+    SetpointStore s;
+    s.magic       = SETPOINT_STORE_MAGIC;
+    s.version     = SETPOINT_STORE_VERSION;
+    s.rememberSet = g_rememberSet ? 1 : 0;
+    s.reserved    = 0;
+    s.setV_cV[0]  = setV_cV[0];  s.setV_cV[1] = setV_cV[1];
+    s.setI_mA[0]  = setI_mA[0];  s.setI_mA[1] = setI_mA[1];
+    s.crc         = crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc));
+    EEPROM.put(SETPOINT_STORE_ADDR, s);
+    EEPROM.commit();
+}
+
+// Restore the flag (always) and, when it is on, the persisted setpoints (clamped to
+// their editor ranges). Leaves the compiled-in defaults if the blob is absent/corrupt.
+static void setpointsLoad() {
+    SetpointStore s;
+    EEPROM.get(SETPOINT_STORE_ADDR, s);
+    if (s.magic != SETPOINT_STORE_MAGIC || s.version != SETPOINT_STORE_VERSION) return;
+    if (s.crc != crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc)))         return;
+    g_rememberSet = s.rememberSet != 0;
+    if (!g_rememberSet) return;                     // flag restored; keep default setpoints
+    for (int ch = 0; ch < 2; ch++) {
+        int32_t v = s.setV_cV[ch], i = s.setI_mA[ch];
+        setV_cV[ch] = v < 0 ? 0 : (v > SETV_MAX_CV ? SETV_MAX_CV : v);
+        setI_mA[ch] = i < 0 ? 0 : (i > SETI_MAX_MA ? SETI_MAX_MA : i);
+    }
+}
+
+// Debounced setpoint persistence: main-page edits mark the store dirty; the pending
+// write is flushed once the setpoints have been quiet for SETPOINTS_SAVE_DELAY_MS.
+static const uint32_t SETPOINTS_SAVE_DELAY_MS = 4000;
+static bool     g_setpointsDirty   = false;
+static uint32_t g_setpointsDirtyMs = 0;
+
+static void markSetpointsDirty() {
+    if (!g_rememberSet) return;                     // not remembering: nothing to persist
+    g_setpointsDirty   = true;
+    g_setpointsDirtyMs = millis();
+}
+
+static void serviceSetpointPersist() {
+    if (!g_setpointsDirty) return;
+    if ((uint32_t)(millis() - g_setpointsDirtyMs) < SETPOINTS_SAVE_DELAY_MS) return;
+    g_setpointsDirty = false;
+    setpointsSave();
+}
+
 enum EditParam : uint8_t { EDIT_V, EDIT_I };
 static int       editCh    = 0;                              // 0 = CH1, 1 = CH2
 static EditParam editParam = EDIT_V;                         // V or I setpoint
@@ -742,6 +814,7 @@ static const MenuItem FAN_ITEMS[] = {
     { "Fan start temp","45 C" },   // live: g_fanStartC
     { "Fan max temp", "70 C"  },   // live: g_fanMaxC
 };
+enum { UIITEM_BEEPER = 0 };
 static const MenuItem UI_ITEMS[] = {
     { "Beeper",      "On"      },
 };
@@ -803,11 +876,25 @@ static bool avgRowSelector(int subIdx, int row, uint8_t *which) {
     return false;
 }
 
+// Boolean toggle rows (edited as 0/1, shown as a word pair). If (subIdx, row) is one,
+// report its On/Off labels. Used both to render the value and to bracket it while editing.
+static bool toggleRowLabels(int subIdx, int row, const char **onLbl, const char **offLbl) {
+    if (subIdx == SUB_UI  && row == UIITEM_BEEPER)     { *onLbl = "On";  *offLbl = "Off"; return true; }
+    if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER)  { *onLbl = "Yes"; *offLbl = "No";  return true; }
+    return false;
+}
+
 // If (subIdx, row) is an inline-editable row, report its current value and the
-// [lo, hi] range the editor clamps to. Two kinds: the channel averaging rows (seeded
-// from telemetry, committed over the link) and the Temp-and-Fan curve + OTP rows
-// (local setpoint variables).
+// [lo, hi] range the editor clamps to. Three kinds: the channel averaging rows (seeded
+// from telemetry, committed over the link), the Temp-and-Fan curve + OTP rows
+// (local setpoint variables), and the boolean toggle rows (Beeper / Remember set).
 static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
+    if (subIdx == SUB_UI && row == UIITEM_BEEPER) {
+        *cur = beeperEnabled ? 1 : 0; *lo = 0; *hi = 1; return true;
+    }
+    if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER) {
+        *cur = g_rememberSet ? 1 : 0; *lo = 0; *hi = 1; return true;
+    }
     uint8_t which;
     if (avgRowSelector(subIdx, row, &which)) {
         const ChannelStatus &s = channel_status((uint8_t)subIdx);   // SUB_CH1/2 == ch 0/1
@@ -839,6 +926,15 @@ static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
 // link; the fan/OTP setpoints are local variables the thermal service reads.
 static void commitEdit(int subIdx, int row, int value) {
     uint8_t which;
+    if (subIdx == SUB_UI && row == UIITEM_BEEPER) {
+        beeperEnabled = value != 0;
+        return;
+    }
+    if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER) {
+        g_rememberSet = value != 0;
+        setpointsSave();   // persist the flag now (and the current setpoints when enabling)
+        return;
+    }
     if (avgRowSelector(subIdx, row, &which)) {
         channel_set_avg((uint8_t)subIdx, which, (uint8_t)value);
         return;
@@ -939,6 +1035,11 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
         return buf;
     }
 
+    if (subIdx == SUB_UI && row == UIITEM_BEEPER)
+        return beeperEnabled ? "On" : "Off";
+    if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER)
+        return g_rememberSet ? "Yes" : "No";
+
     return item.value;
 }
 
@@ -1003,8 +1104,13 @@ static void drawSubmenu() {
         char vbuf[20];
         const char *val;
         if (submenuEditing && i == submenuSel) {
-            // Brackets flag the row as being actively edited.
-            snprintf(vbuf, sizeof(vbuf), "[%d]", editValue);
+            // Brackets flag the row as being actively edited. Toggle rows show the
+            // word (e.g. "[On]") rather than the raw 0/1.
+            const char *onL, *offL;
+            if (toggleRowLabels(submenuIdx, i, &onL, &offL))
+                snprintf(vbuf, sizeof(vbuf), "[%s]", editValue ? onL : offL);
+            else
+                snprintf(vbuf, sizeof(vbuf), "[%d]", editValue);
             val = vbuf;
         } else {
             val = resolveMenuValue(submenuIdx, i, m.items[i], vbuf, sizeof(vbuf));
@@ -1314,6 +1420,7 @@ void setup() {
     EEPROM.begin(BRAIN_EEPROM_SIZE);      // flash-backed settings store
     thermalSettingsLoad();                // restore persisted fan curve + SYS OTP
     brainRuntimeLoad();                   // restore the brain's operating-hours meter
+    setpointsLoad();                      // restore V/I setpoints if "Remember set" is on
 
     analogReadResolution(NTC_ADC_BITS);   // 12-bit ADC for the heatsink NTC on GPIO29
     fanInit();                            // 25 kHz PWM on GPIO26 (starts at full speed)
@@ -1424,6 +1531,7 @@ static void onRotate(int steps) {
             pushSetCurrent(editCh);
         }
         applySetpoints();
+        markSetpointsDirty();          // schedule a persist if "Remember set" is on
         drawSetStrip(editCh);
         flushSetStrip(editCh);
         break;
@@ -1666,6 +1774,7 @@ void loop() {
     serviceLinkHeartbeat();  // ping both channels so their comms-loss watchdog stays fed
     serviceLinkSettingsPoll(); // slow re-poll of settings (keeps Runtime row fresh)
     serviceBrainRuntime();   // accumulate the brain's own operating hours
+    serviceSetpointPersist(); // debounced flush of V/I setpoints ("Remember set")
     serviceMcpButtons();   // refresh button state (incl. encoder GP0) before dispatch
     serviceEncoder();
     serviceBuzzer();
