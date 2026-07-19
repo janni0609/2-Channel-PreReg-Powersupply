@@ -34,12 +34,6 @@ Same as Channel 1.
 | Fan start temp | Setpoint of fan start temperature (0–100 °C)                    |
 | Fan max temp   | Setpoint of fan max temperature (0–100 °C)                      |
 
-## UI
-
-| Item   | Description |
-| ------ | ----------- |
-| Beeper | ON / OFF    |
-
 ## Network
 
 | Item        | Description                                                                           |
@@ -61,4 +55,5 @@ Edits do nothing until **Apply**, so a half-edited IP config never goes live.
 | ----------- | ------------------------------------------------------------------------------------- |
 | firmware version      | fw version |
 | remember set values on restart| Yes/No |
+| Beeper | ON / OFF |
 | Brain runtime | Brain runtime|

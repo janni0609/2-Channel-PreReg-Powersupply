@@ -814,10 +814,6 @@ static const MenuItem FAN_ITEMS[] = {
     { "Fan start temp","45 C" },   // live: g_fanStartC
     { "Fan max temp", "70 C"  },   // live: g_fanMaxC
 };
-enum { UIITEM_BEEPER = 0 };
-static const MenuItem UI_ITEMS[] = {
-    { "Beeper",      "On"      },
-};
 static const MenuItem NETWORK_ITEMS[] = {
     { "Status",      "Up"             },   // link + IP (read only)
     { "MAC address", "A8:61:0A:.."    },   // read only
@@ -828,10 +824,11 @@ static const MenuItem NETWORK_ITEMS[] = {
     { "Hostname",    "psu-2ch"        },
     { "Apply",       ""               },   // applies + restarts the interface
 };
-enum { SYSITEM_FWVER = 0, SYSITEM_REMEMBER, SYSITEM_RUNTIME };
+enum { SYSITEM_FWVER = 0, SYSITEM_REMEMBER, SYSITEM_BEEPER, SYSITEM_RUNTIME };
 static const MenuItem SYSTEM_ITEMS[] = {
     { "FW version",   "0.1.0" },
     { "Remember set", "Yes"   },   // remember set values on restart
+    { "Beeper",       "On"    },   // buzzer on/off (was its own UI submenu)
     { "Brain runtime","0 h"   },   // live: g_brainRuntimeS (see resolveMenuValue)
 };
 
@@ -843,12 +840,11 @@ struct Submenu {
 };
 #define ITEM_COUNT(a) ((int)(sizeof(a) / sizeof((a)[0])))
 // Submenu indices used by resolveMenuValue().
-enum { SUB_CH1 = 0, SUB_CH2, SUB_FAN, SUB_UI, SUB_NET, SUB_SYS };
+enum { SUB_CH1 = 0, SUB_CH2, SUB_FAN, SUB_NET, SUB_SYS };
 static const Submenu SUBMENUS[] = {
     { "CHANNEL 1",    "Channel 1",    CHANNEL_ITEMS, ITEM_COUNT(CHANNEL_ITEMS) },
     { "CHANNEL 2",    "Channel 2",    CHANNEL_ITEMS, ITEM_COUNT(CHANNEL_ITEMS) },
     { "TEMP AND FAN", "Temp and Fan", FAN_ITEMS,     ITEM_COUNT(FAN_ITEMS)     },
-    { "UI",           "UI",           UI_ITEMS,      ITEM_COUNT(UI_ITEMS)      },
     { "NETWORK",      "Network",      NETWORK_ITEMS, ITEM_COUNT(NETWORK_ITEMS) },
     { "SYSTEM",       "System",       SYSTEM_ITEMS,  ITEM_COUNT(SYSTEM_ITEMS)  },
 };
@@ -879,8 +875,8 @@ static bool avgRowSelector(int subIdx, int row, uint8_t *which) {
 // Boolean toggle rows (edited as 0/1, shown as a word pair). If (subIdx, row) is one,
 // report its On/Off labels. Used both to render the value and to bracket it while editing.
 static bool toggleRowLabels(int subIdx, int row, const char **onLbl, const char **offLbl) {
-    if (subIdx == SUB_UI  && row == UIITEM_BEEPER)     { *onLbl = "On";  *offLbl = "Off"; return true; }
     if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER)  { *onLbl = "Yes"; *offLbl = "No";  return true; }
+    if (subIdx == SUB_SYS && row == SYSITEM_BEEPER)    { *onLbl = "On";  *offLbl = "Off"; return true; }
     return false;
 }
 
@@ -889,11 +885,11 @@ static bool toggleRowLabels(int subIdx, int row, const char **onLbl, const char 
 // from telemetry, committed over the link), the Temp-and-Fan curve + OTP rows
 // (local setpoint variables), and the boolean toggle rows (Beeper / Remember set).
 static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
-    if (subIdx == SUB_UI && row == UIITEM_BEEPER) {
-        *cur = beeperEnabled ? 1 : 0; *lo = 0; *hi = 1; return true;
-    }
     if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER) {
         *cur = g_rememberSet ? 1 : 0; *lo = 0; *hi = 1; return true;
+    }
+    if (subIdx == SUB_SYS && row == SYSITEM_BEEPER) {
+        *cur = beeperEnabled ? 1 : 0; *lo = 0; *hi = 1; return true;
     }
     uint8_t which;
     if (avgRowSelector(subIdx, row, &which)) {
@@ -926,7 +922,7 @@ static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
 // link; the fan/OTP setpoints are local variables the thermal service reads.
 static void commitEdit(int subIdx, int row, int value) {
     uint8_t which;
-    if (subIdx == SUB_UI && row == UIITEM_BEEPER) {
+    if (subIdx == SUB_SYS && row == SYSITEM_BEEPER) {
         beeperEnabled = value != 0;
         return;
     }
@@ -1035,10 +1031,10 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
         return buf;
     }
 
-    if (subIdx == SUB_UI && row == UIITEM_BEEPER)
-        return beeperEnabled ? "On" : "Off";
     if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER)
         return g_rememberSet ? "Yes" : "No";
+    if (subIdx == SUB_SYS && row == SYSITEM_BEEPER)
+        return beeperEnabled ? "On" : "Off";
 
     return item.value;
 }
