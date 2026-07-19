@@ -5,6 +5,7 @@
 
 #define CAL_STORE_ADDR       0    /* calibration blob base address (~40 B) */
 #define SETTINGS_STORE_ADDR  64   /* settings blob base address (clears CalStore) */
+#define RUNTIME_STORE_ADDR   128  /* runtime blob base address (clears Settings)  */
 
 /* CRC16-CCITT (poly 0x1021, init 0xFFFF) over a byte span. */
 static uint16_t crc16(const uint8_t *data, uint16_t len)
@@ -60,4 +61,25 @@ void settings_store_save(SettingsStore *in)
     in->crc     = crc16((const uint8_t *)in,
                         sizeof(SettingsStore) - sizeof(in->crc));
     EEPROM.put(SETTINGS_STORE_ADDR, *in);   /* EEPROM.put only writes changed bytes */
+}
+
+bool runtime_store_load(RuntimeStore *out)
+{
+    EEPROM.get(RUNTIME_STORE_ADDR, *out);
+
+    if (out->magic != RUNTIME_STORE_MAGIC)     return false;
+    if (out->version != RUNTIME_STORE_VERSION) return false;
+
+    const uint16_t want = crc16((const uint8_t *)out,
+                                sizeof(RuntimeStore) - sizeof(out->crc));
+    return out->crc == want;
+}
+
+void runtime_store_save(RuntimeStore *in)
+{
+    in->magic   = RUNTIME_STORE_MAGIC;
+    in->version = RUNTIME_STORE_VERSION;
+    in->crc     = crc16((const uint8_t *)in,
+                        sizeof(RuntimeStore) - sizeof(in->crc));
+    EEPROM.put(RUNTIME_STORE_ADDR, *in);   /* EEPROM.put only writes changed bytes */
 }

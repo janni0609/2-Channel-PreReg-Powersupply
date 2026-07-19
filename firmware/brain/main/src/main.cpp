@@ -303,6 +303,68 @@ static void thermalSettingsLoad() {
     g_sysOtpC   = s.sysOtpC   < 40 ? 40 : (s.sysOtpC > 120 ? 120 : s.sysOtpC);
 }
 
+// ── Brain operating-hours meter (flash-backed EEPROM emulation) ────────────────
+// The brain's own hour-meter: accumulated powered-on seconds, persisted so the
+// "Brain runtime" system row survives reboots. Its own blob (magic/version/CRC)
+// in a separate EEPROM slot from the thermal store. RP2350 EEPROM.commit() flushes
+// the whole 256 B shadow to one flash sector, so we save on a slow cadence to
+// bound sector-erase wear; up to BRAIN_RUNTIME_SAVE_S of the current session is
+// lost on an unexpected power-off, which never changes the whole-hours readout.
+#define BRAIN_RUNTIME_STORE_ADDR    32
+#define BRAIN_RUNTIME_STORE_MAGIC   0x42525431u   /* 'BRT1' */
+#define BRAIN_RUNTIME_STORE_VERSION 1
+#define BRAIN_RUNTIME_SAVE_S        600u          /* flush every 10 min of runtime */
+
+struct BrainRuntimeStore {
+    uint32_t magic;
+    uint16_t version;
+    uint32_t seconds;
+    uint16_t crc;
+};
+
+static uint32_t g_brainRuntimeS = 0;   // total accumulated powered-on seconds
+
+static void brainRuntimeSave() {
+    BrainRuntimeStore s;
+    s.magic   = BRAIN_RUNTIME_STORE_MAGIC;
+    s.version = BRAIN_RUNTIME_STORE_VERSION;
+    s.seconds = g_brainRuntimeS;
+    s.crc     = crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc));
+    EEPROM.put(BRAIN_RUNTIME_STORE_ADDR, s);
+    EEPROM.commit();
+}
+
+static void brainRuntimeLoad() {
+    BrainRuntimeStore s;
+    EEPROM.get(BRAIN_RUNTIME_STORE_ADDR, s);
+    if (s.magic != BRAIN_RUNTIME_STORE_MAGIC || s.version != BRAIN_RUNTIME_STORE_VERSION) {
+        brainRuntimeSave();   // seed a zeroed, valid blob
+        return;
+    }
+    if (s.crc != crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc))) return;
+    g_brainRuntimeS = s.seconds;
+}
+
+// Advance the brain hour-meter from elapsed millis() and flush to flash once a
+// full BRAIN_RUNTIME_SAVE_S has accumulated since the last save. Called every loop.
+static void serviceBrainRuntime() {
+    static uint32_t lastMs   = 0;
+    static uint32_t fracMs   = 0;
+    static uint32_t savedS   = 0;
+    static bool     inited   = false;
+    if (!inited) { lastMs = millis(); savedS = g_brainRuntimeS; inited = true; }
+
+    uint32_t now = millis();
+    fracMs += (uint32_t)(now - lastMs);
+    lastMs  = now;
+    if (fracMs >= 1000u) { g_brainRuntimeS += fracMs / 1000u; fracMs %= 1000u; }
+
+    if (g_brainRuntimeS - savedS >= BRAIN_RUNTIME_SAVE_S) {
+        brainRuntimeSave();
+        savedS = g_brainRuntimeS;
+    }
+}
+
 static void fanInit() {
     analogWriteFreq(FAN_PWM_HZ);
     analogWriteRange(FAN_PWM_RANGE);
@@ -662,7 +724,7 @@ static const MenuItem CHANNEL_ITEMS[] = {
     { "DAC state",    "--"       },   // live: telemetry flag
     { "ADC state",    "--"       },   // live: telemetry flag
     { "Comm",         "--"       },   // live: link up/down
-    { "Runtime",      "0 h"      },   // read from channel (placeholder)
+    { "Runtime",      "0 h"      },   // live: channel operating-hours (s.runtimeS)
     { "Manual Cal V", "Start"    },   // enter cal wizard (confirmed w/ CHx V button)
     { "Manual Cal I", "Start"    },
 };
@@ -691,10 +753,11 @@ static const MenuItem NETWORK_ITEMS[] = {
     { "Hostname",    "psu-2ch"        },
     { "Apply",       ""               },   // applies + restarts the interface
 };
+enum { SYSITEM_FWVER = 0, SYSITEM_REMEMBER, SYSITEM_RUNTIME };
 static const MenuItem SYSTEM_ITEMS[] = {
     { "FW version",   "0.1.0" },
     { "Remember set", "Yes"   },   // remember set values on restart
-    { "Brain runtime","0 h"   },
+    { "Brain runtime","0 h"   },   // live: g_brainRuntimeS (see resolveMenuValue)
 };
 
 struct Submenu {
@@ -826,6 +889,9 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
         case CHITEM_OTP:
             if (!s.avgValid) break;
             snprintf(buf, buflen, "%u C", (unsigned)s.otpC); return buf;
+        case CHITEM_RUNTIME:
+            if (!up || !s.avgValid) break;
+            snprintf(buf, buflen, "%lu h", (unsigned long)(s.runtimeS / 3600u)); return buf;
         default:
             break;
         }
@@ -864,6 +930,11 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
             break;
         }
         return item.value;
+    }
+
+    if (subIdx == SUB_SYS && row == SYSITEM_RUNTIME) {
+        snprintf(buf, buflen, "%lu h", (unsigned long)(g_brainRuntimeS / 3600u));
+        return buf;
     }
 
     return item.value;
@@ -1240,6 +1311,7 @@ void setup() {
 
     EEPROM.begin(BRAIN_EEPROM_SIZE);      // flash-backed settings store
     thermalSettingsLoad();                // restore persisted fan curve + SYS OTP
+    brainRuntimeLoad();                   // restore the brain's operating-hours meter
 
     analogReadResolution(NTC_ADC_BITS);   // 12-bit ADC for the heatsink NTC on GPIO29
     fanInit();                            // 25 kHz PWM on GPIO26 (starts at full speed)
@@ -1571,10 +1643,27 @@ static void serviceLinkHeartbeat() {
     }
 }
 
+// Re-poll each channel's settings on a slow cadence. Settings are otherwise
+// only fetched on link-up, but the channel's operating-hours meter (runtimeS)
+// rides the CMD_SETTINGS reply and keeps climbing, so a periodic refresh keeps
+// the Runtime menu row current (and reconciles avg/OTP if they ever drift).
+// Hours-granularity data needs nothing fast; 10 s is plenty.
+static void serviceLinkSettingsPoll() {
+    static uint32_t lastPoll = 0;
+    uint32_t now = millis();
+    if ((uint32_t)(now - lastPoll) >= 10000u) {
+        lastPoll = now;
+        channel_get_settings(0);
+        channel_get_settings(1);
+    }
+}
+
 void loop() {
     channel_link_task();     // drain both channel UARTs, update telemetry + link state
     serviceLinkResync();     // re-send setpoints/output on link-up; disarm on link-down
     serviceLinkHeartbeat();  // ping both channels so their comms-loss watchdog stays fed
+    serviceLinkSettingsPoll(); // slow re-poll of settings (keeps Runtime row fresh)
+    serviceBrainRuntime();   // accumulate the brain's own operating hours
     serviceMcpButtons();   // refresh button state (incl. encoder GP0) before dispatch
     serviceEncoder();
     serviceBuzzer();

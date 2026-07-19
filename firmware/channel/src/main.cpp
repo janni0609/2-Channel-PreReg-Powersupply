@@ -20,6 +20,7 @@
 
 #include "app/calibration.h"
 #include "app/settings.h"
+#include "app/runtime.h"
 #include "app/setpoint.h"
 #include "app/measure.h"
 #include "app/thermal.h"
@@ -47,6 +48,7 @@ void setup()
 
     /* App modules */
     settings_init();       /* averaging windows; measure_task() reads these */
+    runtime_init();        /* operating-hours meter; restore persisted total */
     setpoint_init();
     measure_init();
     thermal_init();
@@ -67,6 +69,7 @@ void loop()
     /* Always-responsive tasks. */
     comms_task();
     measure_task();
+    runtime_task();        /* accumulate operating time, flush to EEPROM slowly */
 
     /* Periodic safety task. */
     if ((uint32_t)(now - t_thermal) >= PERIOD_THERMAL_MS) {

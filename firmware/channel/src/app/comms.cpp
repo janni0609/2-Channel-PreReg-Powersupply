@@ -9,6 +9,7 @@
 #include "measure.h"
 #include "calibration.h"
 #include "settings.h"
+#include "runtime.h"
 #include "fsm.h"
 
 /* ---- Outbound framing ---------------------------------------------------- */
@@ -61,9 +62,10 @@ void comms_send_telemetry()
 static void send_settings()
 {
     uint8_t p[SETTINGS_PAYLOAD_LEN];
-    proto_put_u8(&p[0], settings_avg(AVG_V));
-    proto_put_u8(&p[1], settings_avg(AVG_I));
-    proto_put_u8(&p[2], settings_otp_c());
+    proto_put_u8 (&p[0], settings_avg(AVG_V));
+    proto_put_u8 (&p[1], settings_avg(AVG_I));
+    proto_put_u8 (&p[2], settings_otp_c());
+    proto_put_u32(&p[3], runtime_seconds());
     send_frame(CMD_SETTINGS, p, SETTINGS_PAYLOAD_LEN);
 }
 

@@ -46,6 +46,7 @@ struct ChannelStatus {
     uint8_t  avgV;        /* voltage measurement averaging window (1..32)  */
     uint8_t  avgI;        /* current measurement averaging window (1..32)  */
     uint8_t  otpC;        /* over-temperature trip point, deg C            */
+    uint32_t runtimeS;    /* channel operating-hours meter (seconds)       */
     bool     avgValid;    /* true once CMD_SETTINGS has been received       */
 
     /* --- link health / bookkeeping --- */

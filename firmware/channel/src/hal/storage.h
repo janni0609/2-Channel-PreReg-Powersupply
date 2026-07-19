@@ -51,4 +51,26 @@ bool settings_store_load(SettingsStore *out);
 /* Stamp magic/version, compute CRC and write to EEPROM. */
 void settings_store_save(SettingsStore *in);
 
+/* ---- Runtime (operating-hours) blob ------------------------------------- */
+/* The channel's own hour-meter: accumulated powered-on seconds, persisted so it
+ * survives reboots. Kept in its own EEPROM region with its own magic/version/CRC
+ * because it is rewritten far more often than the calibration/settings blobs
+ * (see runtime.* for the save cadence); isolating it keeps that write churn off
+ * the cells guarding the other two. */
+#define RUNTIME_STORE_MAGIC    0x52554E31UL  /* 'R''U''N''1' */
+#define RUNTIME_STORE_VERSION  1
+
+struct RuntimeStore {
+    uint32_t magic;
+    uint16_t version;
+    uint32_t seconds;        /* accumulated powered-on operating time */
+    uint16_t crc;            /* CRC16 over all preceding bytes */
+};
+
+/* Load and validate. Returns true and fills *out on success. */
+bool runtime_store_load(RuntimeStore *out);
+
+/* Stamp magic/version, compute CRC and write to EEPROM. */
+void runtime_store_save(RuntimeStore *in);
+
 #endif /* CHANNEL_STORAGE_H */

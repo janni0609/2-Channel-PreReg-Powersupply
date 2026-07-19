@@ -100,6 +100,18 @@
 #define MEAS_AVG_DEFAULT        1u
 
 /* ------------------------------------------------------------------ */
+/* Runtime (operating-hours) meter                                    */
+/* ------------------------------------------------------------------ */
+/* Accumulated powered-on seconds are flushed to EEPROM this often, not
+ * continuously, to bound cell wear. Endurance is ~100k writes; at one save
+ * per interval that is ~100k * interval of operation before wear-out. The
+ * cost is that up to this many seconds of the current session are lost on an
+ * unexpected power-off. 300 s trades ~5 min worst-case loss for ~9.5 years of
+ * continuous operation (far longer intermittently). Display is in whole hours,
+ * so a few dropped minutes never change what the user sees. */
+#define RUNTIME_SAVE_INTERVAL_S   300u
+
+/* ------------------------------------------------------------------ */
 /* Task periods (ms) for the cooperative scheduler                    */
 /* ------------------------------------------------------------------ */
 #define PERIOD_THERMAL_MS       100u

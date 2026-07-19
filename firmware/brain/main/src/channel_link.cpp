@@ -162,9 +162,10 @@ static void handle_frame(uint8_t ch, uint8_t cmd, const uint8_t *pl, uint8_t ple
 
     case CMD_SETTINGS:
         if (plen < SETTINGS_PAYLOAD_LEN) return;      // malformed, ignore
-        st.avgV     = proto_get_u8(&pl[0]);
-        st.avgI     = proto_get_u8(&pl[1]);
-        st.otpC     = proto_get_u8(&pl[2]);
+        st.avgV     = proto_get_u8 (&pl[0]);
+        st.avgI     = proto_get_u8 (&pl[1]);
+        st.otpC     = proto_get_u8 (&pl[2]);
+        st.runtimeS = proto_get_u32(&pl[3]);
         st.avgValid = true;
         break;
 

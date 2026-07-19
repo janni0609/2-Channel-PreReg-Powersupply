@@ -142,8 +142,12 @@ enum {
  *   uint8  avg_v      voltage measurement averaging window (AVG_MIN..AVG_MAX)
  *   uint8  avg_i      current measurement averaging window (AVG_MIN..AVG_MAX)
  *   uint8  otp_c      over-temperature trip point, deg C   (OTP_MIN_C..OTP_MAX_C)
+ *   uint32 runtime_s  accumulated powered-on operating time (seconds)
+ * runtime_s is the channel's own hour-meter: it counts up whenever the channel
+ * is powered and survives reboots (persisted in EEPROM). Slow-changing, so it
+ * rides the settings reply rather than the 100 ms telemetry frame.
  */
-#define SETTINGS_PAYLOAD_LEN   3u
+#define SETTINGS_PAYLOAD_LEN   7u
 
 /* ---- CRC-8 (poly 0x07, init 0x00) --------------------------------------- */
 static inline uint8_t proto_crc8(const uint8_t *data, uint8_t len)
