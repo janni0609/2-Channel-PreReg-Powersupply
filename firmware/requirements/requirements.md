@@ -15,8 +15,8 @@ it has to communicate with the channes.
 
 the Display has to be used (see ????? for a referance)
 
-the brain is connected to a TCAL9539RPWR via i2c. 
-    the TCAL9539RPWR has a rotary encoder connected and 6 buttons + 1 button on the encoder
+the brain is connected to an MCP23008 I/O expander via i2c (I2C1, 400 kHz fast mode).
+    the MCP23008 has a rotary encoder connected and 6 buttons + 1 button on the encoder
     it also has a buzzer connected
 
 
