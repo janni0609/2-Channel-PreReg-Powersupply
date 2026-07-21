@@ -45,7 +45,14 @@ static uint16_t build_config(AdsChannel ch, uint8_t pga)
 
 uint8_t ads1118_conv_time_ms()
 {
-    return 9;   /* 1/128 SPS = 7.8 ms, rounded up with margin */
+    /* 128 SPS = 7.8 ms nominal. 9 ms proved too tight: a slow-oscillator
+     * ADS1118 unit was measured needing ~9-11 ms, and this part returns ~0
+     * when read before the conversion completes -- so at 9 ms the result beat
+     * between the true code and 0 as the conversion time drifted across the
+     * threshold (measured V/I dropping out for scattered samples). 15 ms clears
+     * the worst-case unit with margin; the ~33 Hz V+I sample rate is still
+     * ample. (A DRDY-pin poll would self-adapt if tighter timing is wanted.) */
+    return 15;
 }
 
 void ads1118_start(AdsChannel ch, uint8_t pga)
