@@ -12,8 +12,7 @@
 
 static void enter_fault(uint8_t event)
 {
-    output_disable();
-    setpoint_zero();
+    output_disable();         /* parks the DAC (Vset 0, Iset full) and drops the rails */
     g_state.run_state = ST_FAULT;
     comms_send_event(event);
 }

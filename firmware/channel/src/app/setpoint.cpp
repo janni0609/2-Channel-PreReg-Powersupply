@@ -4,6 +4,7 @@
 #include "calibration.h"
 #include "config.h"
 #include "state.h"
+#include "output.h"
 #include "drivers/mcp48fvb22.h"
 
 static uint16_t s_last_code[2];   /* indexed by CAL_VSET(0)/CAL_ISET(1) */
@@ -20,7 +21,7 @@ void setpoint_init()
 {
     s_last_code[CAL_VSET] = 0;
     s_last_code[CAL_ISET] = 0;
-    setpoint_zero();
+    setpoint_park();
 }
 
 void setpoint_apply_voltage(int32_t mV)
@@ -31,7 +32,9 @@ void setpoint_apply_voltage(int32_t mV)
 
     const uint16_t code = to_code(CAL_VSET, (float)mV);
     s_last_code[CAL_VSET] = code;
-    mcp48_set_code(DAC_CH_VSET, code);
+    /* The DAC is only driven while the output is energized; when off Vset stays
+     * at 0 (output_enable() drives the remembered setpoint as its last step). */
+    if (output_is_on()) mcp48_set_code(DAC_CH_VSET, code);
 }
 
 void setpoint_apply_current(int32_t mA)
@@ -42,15 +45,32 @@ void setpoint_apply_current(int32_t mA)
 
     const uint16_t code = to_code(CAL_ISET, (float)mA);
     s_last_code[CAL_ISET] = code;
+    if (output_is_on()) mcp48_set_code(DAC_CH_ISET, code);
+}
+
+void setpoint_drive_voltage()
+{
+    const uint16_t code = to_code(CAL_VSET, (float)g_state.set_v_mV);
+    s_last_code[CAL_VSET] = code;
+    mcp48_set_code(DAC_CH_VSET, code);
+}
+
+void setpoint_drive_current()
+{
+    const uint16_t code = to_code(CAL_ISET, (float)g_state.set_i_mA);
+    s_last_code[CAL_ISET] = code;
     mcp48_set_code(DAC_CH_ISET, code);
 }
 
-void setpoint_zero()
+void setpoint_park()
 {
+    /* Off/safe state: Vset commanded to 0 V, Iset parked at full-scale current
+     * (SETPOINT_I_MAX_MA) so the CC limit is wide open on the next enable. */
+    const uint16_t icode = to_code(CAL_ISET, (float)SETPOINT_I_MAX_MA);
     mcp48_set_code(DAC_CH_VSET, 0);
-    mcp48_set_code(DAC_CH_ISET, 0);
+    mcp48_set_code(DAC_CH_ISET, icode);
     s_last_code[CAL_VSET] = 0;
-    s_last_code[CAL_ISET] = 0;
+    s_last_code[CAL_ISET] = icode;
 }
 
 uint16_t setpoint_last_code(uint8_t target)
