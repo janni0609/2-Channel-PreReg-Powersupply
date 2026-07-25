@@ -641,23 +641,6 @@ static void drawBigCurrent(int rightX, int yTop, const char *s, uint8_t color) {
     display.drawTextScaled(x + headW + I_TAIL_GAP, yTop, tail, color, 0, BIG_SCALE);
 }
 
-// ── Startup self-test ──────────────────────────────────────────────────────────
-// Full-screen pattern so a wiring/init fault is obvious: border (extents),
-// grayscale ramp (4-bit path), and text (addressing). Held briefly, then the
-// readout takes over.
-void selfTest() {
-    display.clear(0);
-    display.drawRect(0, 0, SSD1322::WIDTH, SSD1322::HEIGHT, 0xF);
-    for (int i = 0; i < 16; i++)
-        display.fillRect(4 + i * 15, 12, 14, 20, (uint8_t)i);
-    display.drawText(4, 2, "SSD1322 SELFTEST  RP2350 SPI1", 0xF, 0);
-    display.drawText(4, 40, "0", 0xF, 0);
-    display.drawText(SSD1322::WIDTH - 5 - 12, 40, "15", 0xF, 0);
-    display.drawTextScaled(80, 44, "BRAIN UI", 0xF, 0, 2);
-    display.flush();
-    delay(2500);
-}
-
 // Elements that never change while a channel is displayed. Called once per panel.
 // (The "CHx" label is drawn here for the first paint but is refreshed every frame
 // by drawChannelHeader() so its colour can track link/output state.)
@@ -1427,8 +1410,6 @@ void setup() {
     channel_link_init();           // bring up the two channel UARTs (UART0/UART1)
 
     display.begin();
-
-    selfTest();
 
     applySetpoints();
     drawMainPage();
