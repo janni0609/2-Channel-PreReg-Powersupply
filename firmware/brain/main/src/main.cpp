@@ -3,6 +3,7 @@
 #include <SSD1322.h>
 #include <Wire.h>
 #include <math.h>
+#include <stddef.h>   // offsetof
 #include <stdio.h>
 #include <string.h>
 
@@ -285,7 +286,7 @@ static void thermalSettingsSave() {
     s.fanStartC = (uint8_t)g_fanStartC;
     s.fanMaxC   = (uint8_t)g_fanMaxC;
     s.sysOtpC   = (uint8_t)g_sysOtpC;
-    s.crc       = crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc));
+    s.crc       = crc16((const uint8_t *)&s, offsetof(ThermalStore, crc));
     EEPROM.put(THERMAL_STORE_ADDR, s);
     EEPROM.commit();   // RP2350 EEPROM emulation is a RAM shadow; commit flushes it
 }
@@ -296,7 +297,7 @@ static void thermalSettingsLoad() {
     ThermalStore s;
     EEPROM.get(THERMAL_STORE_ADDR, s);
     if (s.magic != THERMAL_STORE_MAGIC || s.version != THERMAL_STORE_VERSION) return;
-    if (s.crc != crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc)))        return;
+    if (s.crc != crc16((const uint8_t *)&s, offsetof(ThermalStore, crc)))      return;
     g_fanMinPct = s.fanMinPct > 100 ? 100 : s.fanMinPct;
     g_fanStartC = s.fanStartC > 100 ? 100 : s.fanStartC;
     g_fanMaxC   = s.fanMaxC   > 100 ? 100 : s.fanMaxC;
@@ -329,7 +330,7 @@ static void brainRuntimeSave() {
     s.magic   = BRAIN_RUNTIME_STORE_MAGIC;
     s.version = BRAIN_RUNTIME_STORE_VERSION;
     s.seconds = g_brainRuntimeS;
-    s.crc     = crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc));
+    s.crc     = crc16((const uint8_t *)&s, offsetof(BrainRuntimeStore, crc));
     EEPROM.put(BRAIN_RUNTIME_STORE_ADDR, s);
     EEPROM.commit();
 }
@@ -341,7 +342,7 @@ static void brainRuntimeLoad() {
         brainRuntimeSave();   // seed a zeroed, valid blob
         return;
     }
-    if (s.crc != crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc))) return;
+    if (s.crc != crc16((const uint8_t *)&s, offsetof(BrainRuntimeStore, crc))) return;
     g_brainRuntimeS = s.seconds;
 }
 
@@ -532,7 +533,7 @@ static void setpointsSave() {
     s.reserved    = 0;
     s.setV_cV[0]  = setV_cV[0];  s.setV_cV[1] = setV_cV[1];
     s.setI_mA[0]  = setI_mA[0];  s.setI_mA[1] = setI_mA[1];
-    s.crc         = crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc));
+    s.crc         = crc16((const uint8_t *)&s, offsetof(SetpointStore, crc));
     EEPROM.put(SETPOINT_STORE_ADDR, s);
     EEPROM.commit();
 }
@@ -543,7 +544,7 @@ static void setpointsLoad() {
     SetpointStore s;
     EEPROM.get(SETPOINT_STORE_ADDR, s);
     if (s.magic != SETPOINT_STORE_MAGIC || s.version != SETPOINT_STORE_VERSION) return;
-    if (s.crc != crc16((const uint8_t *)&s, sizeof(s) - sizeof(s.crc)))         return;
+    if (s.crc != crc16((const uint8_t *)&s, offsetof(SetpointStore, crc)))       return;
     g_rememberSet = s.rememberSet != 0;
     if (!g_rememberSet) return;                     // flag restored; keep default setpoints
     for (int ch = 0; ch < 2; ch++) {
