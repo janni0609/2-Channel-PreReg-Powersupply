@@ -10,6 +10,17 @@ protocol spoken to each **Channel** (ATtiny1614). See
 The instrument aims to be a well-behaved **SCPI-1999 / IEEE-488.2** subset so it
 works with VISA, PyVISA, `lxi`, NI-MAX, and generic terminal tools.
 
+> **Implementation status (firmware ≥ 0.2.0):** this command set is implemented in
+> `firmware/brain/main/src/scpi.cpp`, served over both the **W5500 Ethernet** TCP
+> socket (port 5025) and the **USB CDC** console. LAN configuration lives in the
+> front-panel *Settings → Network* submenu (`netcfg.cpp`). Known deviations:
+> voltage setpoints resolve to 10 mV (the panel's finest digit) rather than 1 mV;
+> `CALibration:DATA?` returns SCPI NaN because gain/offset cannot be read back over
+> the channel link; and `SYSTem:COMMunicate:LAN:HOSTname` is stored/displayed but,
+> with the stock Ethernet DHCP client, is not advertised as the DHCP host name. The
+> real per-channel limits are **36.000 V / 2.000 A** (see `config.h`), so `*IDN?`
+> reports model `PSU-2CH-36V2A`.
+
 ---
 
 ## 1. Instrument model

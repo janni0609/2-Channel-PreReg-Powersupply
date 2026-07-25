@@ -9,6 +9,14 @@
 
 #include "channel_link.h"   // UART link to the two ATtiny1614 channel boards
 #include "protocol.h"       // ST_* / FLAG_* telemetry decode constants
+#include "brain_api.h"      // hooks the SCPI layer calls into this app state
+#include "netcfg.h"         // W5500 Ethernet + SCPI TCP transport
+#include "scpi.h"           // SCPI-1999 remote-control parser
+
+// USB CDC console doubles as a SCPI transport, so the panel's own debug chatter
+// is compiled out by default (it would otherwise corrupt SCPI responses). Flip
+// to 1 only for bring-up on a dedicated serial monitor.
+#define BRAIN_SERIAL_DEBUG 0
 
 // ── Front-panel OLED wiring (SSD1322 256x64) on the RP2350-Tiny brain ──────────
 //   RES  -> GPIO9     reset          (manual GPIO)
@@ -24,15 +32,14 @@
 #define PIN_CS   13
 
 // ── Rotary encoder quadrature (direct wiring). The ROT signals are active-low,
-// so the inputs use pull-ups; a closed contact pulls the pin down. GPIO17 is just
-// held high for the current hookup. The encoder PUSH button no longer lives here —
-// it moved to the MCP23008 I/O expander (GP0), read over I2C below.
+// so the inputs use pull-ups; a closed contact pulls the pin down. The encoder
+// PUSH button no longer lives here — it moved to the MCP23008 I/O expander (GP0),
+// read over I2C below. (GPIO17, formerly tied high for the old hookup, is now the
+// W5500 chip-select — see netcfg.cpp.)
 //   ROT_A  -> GPIO14   quadrature A   (PIO in-base; A/B must be consecutive)
 //   ROT_B  -> GPIO15   quadrature B
-//   GPIO17 -> driven high
 #define PIN_ENC_A   14
 #define PIN_ENC_B   15
-#define PIN_ENC_PWR 17
 
 // ── Front-panel buttons + buzzer on an MCP23008 I/O expander (I2C1) ────────────
 // The RP2350 exposes I2C1 SDA/SCL on GPIO6/GPIO7 (I2C0 cannot reach those pins),
@@ -95,8 +102,6 @@ static const int ENC_SIGN   = 1;  // flip sign if rotation goes the wrong way
 static void encoderInit() {
     // Pads: inputs with pull-ups (signals are active-low). The PIO IN path
     // sees the pad regardless of function select, so plain pinMode() is enough.
-    pinMode(PIN_ENC_PWR, OUTPUT);
-    digitalWrite(PIN_ENC_PWR, HIGH);
     pinMode(PIN_ENC_A,  INPUT_PULLUP);
     pinMode(PIN_ENC_B,  INPUT_PULLUP);
 
@@ -166,11 +171,13 @@ static void mcpInit() {
     pinMode(PIN_MCP_INT, INPUT);                  // hardware pull-up holds INT high
     (void)mcpRead(MCP_GPIO);                      // clear any power-on interrupt
 
+#if BRAIN_SERIAL_DEBUG
     uint8_t back = mcpRead(MCP_IODIR);            // bring-up sanity check
     Serial.print("MCP23008 IODIR readback: 0x");
     Serial.println(back, HEX);
     if (back != MCP_BTN_MASK)
         Serial.println("MCP23008 not responding as expected!");
+#endif
 }
 
 // ── Buzzer (non-blocking) ──────────────────────────────────────────────────────
@@ -590,6 +597,10 @@ static inline int &selDigit() { return selDigitFor[editCh][editParam]; }
 enum UiPage : uint8_t { PAGE_MAIN, PAGE_SETTINGS, PAGE_SUBMENU, PAGE_CAL };
 static UiPage uiPage = PAGE_MAIN;
 
+// Remote lock (SCPI SYST:RWLock). While set, main-page knob/button edits are
+// ignored so a remote session holds exclusive control; SYST:LOCal clears it.
+static bool g_frontPanelLocked = false;
+
 // ── Channel link push helpers ───────────────────────────────────────────────────
 // Setpoints are edited in centivolts / milliamps; the protocol carries millivolts
 // / milliamps, so voltage scales x10 on the way out.
@@ -798,19 +809,67 @@ static const MenuItem FAN_ITEMS[] = {
     { "Fan start temp","45 C" },   // live: g_fanStartC
     { "Fan max temp", "70 C"  },   // live: g_fanMaxC
 };
+// Row indices are referenced by the Network editing handlers; keep in sync.
+enum { NETITEM_STATUS = 0, NETITEM_MAC, NETITEM_DHCP, NETITEM_IP,
+       NETITEM_MASK, NETITEM_GW, NETITEM_HOST, NETITEM_APPLY };
 static const MenuItem NETWORK_ITEMS[] = {
-    { "Status",      "Up"             },   // link + IP (read only)
-    { "MAC address", "A8:61:0A:.."    },   // read only
-    { "DHCP",        "On"             },   // when On, IP/mask/gw are read only
-    { "IP address",  "192.168.1.50"   },
-    { "Netmask",     "255.255.255.0"  },   // CIDR /24
-    { "Gateway",     "192.168.1.1"    },
-    { "Hostname",    "psu-2ch"        },
-    { "Apply",       ""               },   // applies + restarts the interface
+    { "Status",      "--"             },   // live: link + assigned IP (read only)
+    { "MAC address", "--"             },   // live: derived from chip id (read only)
+    { "DHCP",        "On"             },   // editable; when On, IP/mask/gw read only
+    { "IP address",  "--"             },   // live (DHCP) or editable (static)
+    { "Netmask",     "--"             },
+    { "Gateway",     "--"             },
+    { "Hostname",    "--"             },   // editable (char picker)
+    { "Apply",       "Go"             },   // re-init the interface + persist config
 };
+
+// ── Network submenu editing state ───────────────────────────────────────────────
+// IP-type rows use an octet editor (encoder rotates the active octet, short press
+// advances to the next / commits after the fourth). The hostname row uses a
+// character picker over a limited charset. Both cancel on a long press.
+enum NetEditMode : uint8_t { NE_NONE, NE_IP, NE_HOST };
+static NetEditMode g_netEdit      = NE_NONE;
+static int         g_netEditRow   = 0;      // NETITEM_IP / _MASK / _GW while NE_IP
+static uint8_t     g_netOctet[4]  = { 0, 0, 0, 0 };
+static int         g_netOctIdx    = 0;
+static const int   NET_HOST_EDIT_MAX = 15;  // panel-editable hostname length cap
+static char        g_netHost[NETCFG_HOSTNAME_MAX] = { 0 };
+static int         g_netHostPos   = 0;
+// Hostname charset: index 0 (space) trims the name at that position on commit.
+static const char  NET_HOST_CHARS[] = " abcdefghijklmnopqrstuvwxyz0123456789-";
+
+static void netFmtIp(const uint8_t v[4], char *buf, size_t n) {
+    snprintf(buf, n, "%u.%u.%u.%u", v[0], v[1], v[2], v[3]);
+}
+
+// Render the octet-edit field with the active octet in brackets, e.g. "192.168.[1].50".
+static void netFmtOctetEdit(char *buf, size_t n) {
+    int o = 0;
+    for (int i = 0; i < 4 && o < (int)n - 8; i++) {
+        if (i) buf[o++] = '.';
+        if (i == g_netOctIdx) o += snprintf(buf + o, n - o, "[%u]", g_netOctet[i]);
+        else                  o += snprintf(buf + o, n - o, "%u",   g_netOctet[i]);
+    }
+    buf[o] = '\0';
+}
+
+// Render the hostname-edit field: trimmed content with the active char bracketed.
+static void netFmtHostEdit(char *buf, size_t n) {
+    int dlen = 0;
+    for (int i = 0; i < NET_HOST_EDIT_MAX; i++)
+        if (g_netHost[i] && g_netHost[i] != ' ') dlen = i + 1;
+    if (g_netHostPos + 1 > dlen) dlen = g_netHostPos + 1;   // keep the cursor visible
+    int o = 0;
+    for (int i = 0; i < dlen && o < (int)n - 4; i++) {
+        char c = g_netHost[i] ? g_netHost[i] : ' ';
+        if (i == g_netHostPos) { buf[o++] = '['; buf[o++] = c; buf[o++] = ']'; }
+        else                     buf[o++] = c;
+    }
+    buf[o] = '\0';
+}
 enum { SYSITEM_FWVER = 0, SYSITEM_REMEMBER, SYSITEM_BEEPER, SYSITEM_RUNTIME };
 static const MenuItem SYSTEM_ITEMS[] = {
-    { "FW version",   "0.1.0" },
+    { "FW version",   "0.2.0" },
     { "Remember set", "Yes"   },   // remember set values on restart
     { "Beeper",       "On"    },   // buzzer on/off (was its own UI submenu)
     { "Brain runtime","0 h"   },   // live: g_brainRuntimeS (see resolveMenuValue)
@@ -861,6 +920,7 @@ static bool avgRowSelector(int subIdx, int row, uint8_t *which) {
 static bool toggleRowLabels(int subIdx, int row, const char **onLbl, const char **offLbl) {
     if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER)  { *onLbl = "Yes"; *offLbl = "No";  return true; }
     if (subIdx == SUB_SYS && row == SYSITEM_BEEPER)    { *onLbl = "On";  *offLbl = "Off"; return true; }
+    if (subIdx == SUB_NET && row == NETITEM_DHCP)      { *onLbl = "On";  *offLbl = "Off"; return true; }
     return false;
 }
 
@@ -874,6 +934,9 @@ static bool editableRow(int subIdx, int row, int *cur, int *lo, int *hi) {
     }
     if (subIdx == SUB_SYS && row == SYSITEM_BEEPER) {
         *cur = beeperEnabled ? 1 : 0; *lo = 0; *hi = 1; return true;
+    }
+    if (subIdx == SUB_NET && row == NETITEM_DHCP) {
+        *cur = netcfg_dhcp() ? 1 : 0; *lo = 0; *hi = 1; return true;
     }
     uint8_t which;
     if (avgRowSelector(subIdx, row, &which)) {
@@ -913,6 +976,11 @@ static void commitEdit(int subIdx, int row, int value) {
     if (subIdx == SUB_SYS && row == SYSITEM_REMEMBER) {
         g_rememberSet = value != 0;
         setpointsSave();   // persist the flag now (and the current setpoints when enabling)
+        return;
+    }
+    if (subIdx == SUB_NET && row == NETITEM_DHCP) {
+        netcfg_set_dhcp(value != 0);
+        netcfg_apply();    // re-address the interface for the new mode + persist
         return;
     }
     if (avgRowSelector(subIdx, row, &which)) {
@@ -1008,6 +1076,44 @@ static const char *resolveMenuValue(int subIdx, int row, const MenuItem &item, c
             break;
         }
         return item.value;
+    }
+
+    if (subIdx == SUB_NET) {
+        uint8_t v[4];
+        switch (row) {
+        case NETITEM_STATUS:
+            if (!netcfg_hw_present()) return "No HW";
+            if (!netcfg_link_up())    return "Link down";
+            if (!netcfg_has_ip())     return "No IP";
+            netcfg_live_ip(v); netFmtIp(v, buf, buflen); return buf;
+        case NETITEM_MAC: {
+            uint8_t m[6]; netcfg_mac(m);
+            snprintf(buf, buflen, "%02X:%02X:%02X:%02X:%02X:%02X",
+                     m[0], m[1], m[2], m[3], m[4], m[5]);
+            return buf;
+        }
+        case NETITEM_DHCP:
+            return netcfg_dhcp() ? "On" : "Off";
+        case NETITEM_IP:
+        case NETITEM_MASK:
+        case NETITEM_GW:
+            if (g_netEdit == NE_IP && g_netEditRow == row) { netFmtOctetEdit(buf, buflen); return buf; }
+            if (netcfg_dhcp()) {                 // DHCP: show the assigned values
+                if      (row == NETITEM_IP)   netcfg_live_ip(v);
+                else if (row == NETITEM_MASK) netcfg_live_mask(v);
+                else                          netcfg_live_gw(v);
+            } else {                             // static: show the pending config
+                if      (row == NETITEM_IP)   netcfg_get_ip(v);
+                else if (row == NETITEM_MASK) netcfg_get_mask(v);
+                else                          netcfg_get_gw(v);
+            }
+            netFmtIp(v, buf, buflen); return buf;
+        case NETITEM_HOST:
+            if (g_netEdit == NE_HOST) { netFmtHostEdit(buf, buflen); return buf; }
+            return netcfg_hostname();
+        default:
+            return item.value;                   // Apply row
+        }
     }
 
     if (subIdx == SUB_SYS && row == SYSITEM_RUNTIME) {
@@ -1394,6 +1500,65 @@ static void applySetpoints() {
     ch2.setV = setV_cV[1] / 100.0f;   ch2.setI = setI_mA[1] / 1000.0f;
 }
 
+// ── SCPI ↔ application bridge (brain_api.h) ─────────────────────────────────────
+// These let a remote command land in exactly the same setpoint / output / status
+// state the front panel drives, so the OLED, the "Remember set" persistence and
+// the channel link all stay consistent regardless of which interface acted.
+namespace brain {
+
+void setVoltageMv(uint8_t ch, int32_t mV) {
+    if (ch > 1) return;
+    if (mV < 0) mV = 0;
+    if (mV > SETV_MAX_CV * 10) mV = SETV_MAX_CV * 10;
+    setV_cV[ch] = (mV + 5) / 10;              // panel resolution is 10 mV
+    applySetpoints();
+    markSetpointsDirty();
+    pushSetVoltage(ch);
+    if (uiPage == PAGE_MAIN) { drawSetStrip(ch); flushSetStrip(ch); }
+}
+
+void setCurrentMa(uint8_t ch, int32_t mA) {
+    if (ch > 1) return;
+    if (mA < 0) mA = 0;
+    if (mA > SETI_MAX_MA) mA = SETI_MAX_MA;
+    setI_mA[ch] = mA;
+    applySetpoints();
+    markSetpointsDirty();
+    pushSetCurrent(ch);
+    if (uiPage == PAGE_MAIN) { drawSetStrip(ch); flushSetStrip(ch); }
+}
+
+int32_t getVoltageSetMv(uint8_t ch) { return ch > 1 ? 0 : setV_cV[ch] * 10; }
+int32_t getCurrentSetMa(uint8_t ch) { return ch > 1 ? 0 : setI_mA[ch]; }
+int32_t voltageMaxMv() { return SETV_MAX_CV * 10; }
+int32_t currentMaxMa() { return SETI_MAX_MA; }
+
+bool setOutput(uint8_t ch, bool on) {
+    if (ch > 1) return false;
+    if (on && g_otpTripped && !outDesired[ch]) return false;   // OTP latched: refuse
+    outDesired[ch] = on;
+    channel_set_output(ch, on);
+    if (uiPage == PAGE_MAIN) { drawChannelHeader(ch); flushDynamic(ch * 128); }
+    return true;
+}
+
+bool getOutputDesired(uint8_t ch) { return ch > 1 ? false : outDesired[ch]; }
+
+void resetFault(uint8_t ch) { if (ch <= 1) channel_reset_fault(ch); }
+
+float systemTempC() { return g_tempMaxC; }
+
+void beepOnce()          { beep(50); }
+void setBeeper(bool on)  { beeperEnabled = on; }
+bool getBeeper()         { return beeperEnabled; }
+
+uint32_t uptimeS() { return millis() / 1000u; }
+
+void setFrontPanelLock(bool locked) { g_frontPanelLocked = locked; }
+bool getFrontPanelLock()            { return g_frontPanelLocked; }
+
+}  // namespace brain
+
 void setup() {
     Serial.begin(115200);          // USB CDC debug console (separate from the links)
 
@@ -1413,6 +1578,99 @@ void setup() {
 
     applySetpoints();
     drawMainPage();
+
+    // Bring up remote control last, so the readout is already on screen while the
+    // (bounded) DHCP request runs. scpi_init() must precede netcfg_init() because
+    // the first accepted client can arrive as soon as the server is listening.
+    scpi_init();
+    netcfg_init();   // W5500 + SCPI TCP server on port 5025
+}
+
+// ── Network submenu editing (octet + hostname pickers) ──────────────────────────
+// These run inside the PAGE_SUBMENU handlers for SUB_NET. Edits mutate the pending
+// netcfg config and are persisted immediately; the interface only re-addresses when
+// the user runs the Apply row (or toggles DHCP), so a half-typed IP never disrupts
+// a live session.
+static void netStartIpEdit(int row) {
+    uint8_t v[4];
+    if      (row == NETITEM_IP)   netcfg_get_ip(v);
+    else if (row == NETITEM_MASK) netcfg_get_mask(v);
+    else                          netcfg_get_gw(v);
+    memcpy(g_netOctet, v, 4);
+    g_netOctIdx  = 0;
+    g_netEditRow = row;
+    g_netEdit    = NE_IP;
+}
+
+static void netCommitIpEdit() {
+    if      (g_netEditRow == NETITEM_IP)   netcfg_set_ip(g_netOctet);
+    else if (g_netEditRow == NETITEM_MASK) netcfg_set_mask(g_netOctet);
+    else                                   netcfg_set_gw(g_netOctet);
+    g_netEdit = NE_NONE;
+    netcfg_save();
+}
+
+static void netStartHostEdit() {
+    memset(g_netHost, 0, sizeof(g_netHost));
+    strncpy(g_netHost, netcfg_hostname(), NET_HOST_EDIT_MAX);
+    g_netHost[NET_HOST_EDIT_MAX] = '\0';
+    g_netHostPos = 0;
+    g_netEdit    = NE_HOST;
+}
+
+static void netCommitHostEdit() {
+    for (int i = NET_HOST_EDIT_MAX - 1; i >= 0; i--) {   // trim trailing blanks
+        if (g_netHost[i] == ' ' || g_netHost[i] == '\0') g_netHost[i] = '\0';
+        else break;
+    }
+    if (g_netHost[0]) netcfg_set_hostname(g_netHost);
+    g_netEdit = NE_NONE;
+    netcfg_save();
+}
+
+// Short press on a SUB_NET row. Returns true if consumed; false lets the generic
+// editable-row path handle it (the DHCP toggle).
+static bool netShortPress() {
+    if (g_netEdit == NE_IP) {
+        if (g_netOctIdx < 3) g_netOctIdx++; else netCommitIpEdit();
+        return true;
+    }
+    if (g_netEdit == NE_HOST) {
+        if (g_netHostPos < NET_HOST_EDIT_MAX - 1) g_netHostPos++; else netCommitHostEdit();
+        return true;
+    }
+    switch (submenuSel) {
+    case NETITEM_IP:
+    case NETITEM_MASK:
+    case NETITEM_GW:
+        if (netcfg_dhcp()) { beep(200); return true; }   // read-only while DHCP is on
+        netStartIpEdit(submenuSel); beep(20); return true;
+    case NETITEM_HOST:  netStartHostEdit(); beep(20); return true;
+    case NETITEM_APPLY: netcfg_apply();     beep(20); return true;
+    default:            return false;                     // Status / MAC / DHCP
+    }
+}
+
+// Rotation on a SUB_NET row while an octet/host edit is active. Returns true if
+// consumed.
+static bool netRotate(int steps) {
+    if (g_netEdit == NE_IP) {
+        int nv = (int)g_netOctet[g_netOctIdx] + steps;
+        if (nv < 0) nv = 0; if (nv > 255) nv = 255;
+        g_netOctet[g_netOctIdx] = (uint8_t)nv;
+        return true;
+    }
+    if (g_netEdit == NE_HOST) {
+        int setlen = (int)sizeof(NET_HOST_CHARS) - 1;
+        char cur = g_netHost[g_netHostPos] ? g_netHost[g_netHostPos] : ' ';
+        int idx = 0;
+        for (int i = 0; i < setlen; i++) if (NET_HOST_CHARS[i] == cur) { idx = i; break; }
+        idx = (idx + steps) % setlen;
+        if (idx < 0) idx += setlen;
+        g_netHost[g_netHostPos] = NET_HOST_CHARS[idx];
+        return true;
+    }
+    return false;
 }
 
 // ── Encoder input dispatch ──────────────────────────────────────────────────────
@@ -1441,6 +1699,9 @@ static void onShortPress() {
             calStart(submenuIdx, submenuSel == CHITEM_MANV ? EDIT_V : EDIT_I);
             break;
         }
+        // Network submenu: octet / hostname pickers + Apply. Falls through to the
+        // generic editor only for the DHCP toggle row.
+        if (submenuIdx == SUB_NET && netShortPress()) { drawSubmenu(); break; }
         int cur, lo, hi;
         if (!editableRow(submenuIdx, submenuSel, &cur, &lo, &hi)) break;  // not editable
         if (!submenuEditing) {
@@ -1476,7 +1737,10 @@ static void onLongPress() {
         drawMainPage();
         break;
     case PAGE_SUBMENU:
-        if (submenuEditing) {
+        if (g_netEdit != NE_NONE) {
+            g_netEdit = NE_NONE;      // cancel an in-progress IP / hostname edit
+            drawSubmenu();
+        } else if (submenuEditing) {
             submenuEditing = false;   // cancel edit, discard the pending value
             drawSubmenu();
         } else {
@@ -1497,6 +1761,7 @@ static void onLongPress() {
 static void onRotate(int steps) {
     switch (uiPage) {
     case PAGE_MAIN:
+        if (g_frontPanelLocked) { beep(200); break; }   // remote lock: ignore edits
         if (editParam == EDIT_V) {
             setV_cV[editCh] += (int32_t)steps * V_DIGIT_STEP_CV[selDigit()];
             if (setV_cV[editCh] < 0)           setV_cV[editCh] = 0;
@@ -1518,7 +1783,9 @@ static void onRotate(int steps) {
         drawSettingsOverview();
         break;
     case PAGE_SUBMENU:
-        if (submenuEditing) {
+        if (submenuIdx == SUB_NET && netRotate(steps)) {
+            // consumed by an octet / hostname edit
+        } else if (submenuEditing) {
             int v = editValue + steps;
             if (v < editMin) v = editMin;
             if (v > editMax) v = editMax;
@@ -1546,6 +1813,7 @@ static void onRotate(int steps) {
 // to that field. Only meaningful on the main page.
 static void setEditTarget(int ch, EditParam p) {
     if (uiPage != PAGE_MAIN) return;
+    if (g_frontPanelLocked) { beep(200); return; }   // remote lock: ignore edits
     editCh    = ch;
     editParam = p;
     drawSetStrip(0); flushSetStrip(0);             // move the cursor to the new field
@@ -1556,6 +1824,7 @@ static void setEditTarget(int ch, EditParam p) {
 // follow the channel's actual state once telemetry confirms it. While the OTP latch
 // holds, turning an output *on* is refused (a long beep flags the block).
 static void toggleOutput(int ch) {
+    if (g_frontPanelLocked) { beep(200); return; }   // remote lock: ignore edits
     if (g_otpTripped && !outDesired[ch]) {   // over-temp: don't re-energize
         beep(200);
         return;
@@ -1746,6 +2015,34 @@ static void serviceLinkSettingsPoll() {
     }
 }
 
+// ── USB CDC SCPI transport ──────────────────────────────────────────────────────
+// The USB serial console doubles as a SCPI session: assemble one LF-terminated
+// line and hand it to the same parser the Ethernet server uses. Debug prints are
+// compiled out (BRAIN_SERIAL_DEBUG) so they can't corrupt the response stream.
+static void usbScpiWrite(void *ctx, const char *data, size_t len) {
+    (void)ctx;
+    Serial.write((const uint8_t *)data, len);
+}
+
+static void serviceUsbScpi() {
+    static char buf[256];
+    static int  len = 0;
+    static bool overflow = false;
+    while (Serial.available()) {
+        int ci = Serial.read();
+        if (ci < 0) break;
+        char c = (char)ci;
+        if (c == '\n') {
+            if (overflow) { scpi_report_line_overflow(usbScpiWrite, nullptr); overflow = false; }
+            else          { buf[len] = '\0'; scpi_process_line(buf, usbScpiWrite, nullptr); }
+            len = 0;
+        } else if (c != '\r') {
+            if (len < (int)sizeof(buf) - 1) buf[len++] = c;
+            else overflow = true;      // keep consuming until the terminating LF
+        }
+    }
+}
+
 void loop() {
     channel_link_task();     // drain both channel UARTs, update telemetry + link state
     serviceLinkResync();     // re-send setpoints/output on link-up; disarm on link-down
@@ -1757,6 +2054,10 @@ void loop() {
     serviceEncoder();
     serviceBuzzer();
     serviceThermal();      // hottest temp -> over-temp trip + chassis fan PWM
+
+    netcfg_task();         // accept/serve SCPI TCP clients; DHCP maintenance
+    serviceUsbScpi();      // SCPI over the USB CDC console
+    scpi_task();           // fold channel events into the SCPI error queue/status
 
     const uint32_t now = millis();
 
@@ -1787,9 +2088,9 @@ void loop() {
                 drawCalPage();
             }
         }
-    } else if (uiPage == PAGE_SUBMENU && submenuIdx <= SUB_FAN) {
-        // Channel / fan submenus mirror live telemetry; refresh them a few times a
-        // second so the measured values keep moving while the page is open.
+    } else if (uiPage == PAGE_SUBMENU && (submenuIdx <= SUB_FAN || submenuIdx == SUB_NET)) {
+        // Channel / fan submenus mirror live telemetry; the Network submenu mirrors
+        // link + DHCP status. Refresh a few times a second while the page is open.
         static uint32_t lastMenu = 0;
         if ((uint32_t)(now - lastMenu) >= 300) {
             lastMenu = now;
