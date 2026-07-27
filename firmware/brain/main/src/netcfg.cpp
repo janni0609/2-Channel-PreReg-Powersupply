@@ -11,6 +11,7 @@
 
 #include "netcfg.h"
 #include "scpi.h"
+#include "channel_link.h"   // keep the channel watchdogs fed across a DHCP attempt
 
 // ── W5500 pin map (RP2350 hardware SPI0) ────────────────────────────────────────
 #define NET_PIN_CS   17
@@ -26,14 +27,24 @@
 #define NET_LINE_MAX    256    // SCPI line length cap (spec §2)
 
 // ── DHCP timing ─────────────────────────────────────────────────────────────────
+// Every DHCP acquisition in this library is *blocking* (Dhcp.cpp spins until it
+// has a lease or the timeout expires), so every millisecond spent here is a
+// millisecond loop() is not polling the front panel or feeding the channels.
+//
 // The initial lease attempt at boot is bounded so a missing cable/server can only
-// stall startup briefly (the OLED is already showing the readout by then). If it
-// fails, netcfg_task() retries on a slow cadence while the cable is up, so the
-// supply self-heals once the network appears without any panel interaction.
+// stall startup briefly (the OLED is already showing the readout by then, and the
+// channel outputs are still off). If it fails, netcfg_task() retries on a slow
+// cadence while the cable is up, so the supply self-heals once the network appears
+// without any panel interaction.
+//
+// The retry budget is deliberately shorter than the channel-side comms watchdog
+// (COMMS_TIMEOUT_MS = 1000 ms): a retry that outran it would make both channels
+// drop their outputs every retry period. A LAN DHCP server answers in tens of
+// milliseconds, so 800 ms is ample; if none does, we simply try again later.
 #define NET_DHCP_INIT_TIMEOUT_MS  6000
 #define NET_DHCP_INIT_RESP_MS     2000
-#define NET_DHCP_RETRY_TIMEOUT_MS 1500
-#define NET_DHCP_RETRY_RESP_MS    1000
+#define NET_DHCP_RETRY_TIMEOUT_MS 800
+#define NET_DHCP_RETRY_RESP_MS    250
 #define NET_DHCP_RETRY_PERIOD_MS  20000u
 
 // ── Persisted configuration ─────────────────────────────────────────────────────
@@ -69,6 +80,9 @@ static bool    s_hwPresent   = false;
 static bool    s_inited      = false;
 static bool    s_applyPending = false;
 static uint32_t s_lastRetryMs = 0;
+// True only while we believe we hold a DHCP lease. This gates Ethernet.maintain()
+// — see netcfg_task() for why calling it without a lease is fatal to the UI.
+static bool    s_leased      = false;
 
 // ── SCPI TCP server + client pool ───────────────────────────────────────────────
 static EthernetServer s_server(NETCFG_SCPI_PORT);
@@ -149,8 +163,10 @@ static void bringUp() {
 
     if (s_dhcp) {
         // Bounded, so a missing DHCP server can't hang boot for long.
-        Ethernet.begin(s_mac, NET_DHCP_INIT_TIMEOUT_MS, NET_DHCP_INIT_RESP_MS);
+        s_leased = (Ethernet.begin(s_mac, NET_DHCP_INIT_TIMEOUT_MS,
+                                   NET_DHCP_INIT_RESP_MS) == 1);
     } else {
+        s_leased = false;                           // static: nothing to renew
         IPAddress ip(s_ip[0], s_ip[1], s_ip[2], s_ip[3]);
         IPAddress dns(s_dns[0], s_dns[1], s_dns[2], s_dns[3]);
         IPAddress gw(s_gw[0], s_gw[1], s_gw[2], s_gw[3]);
@@ -258,15 +274,37 @@ void netcfg_task() {
         else                          s_clients[i].stop();
     }
 
-    // DHCP lease renewal (cheap; only acts when the lease timer elapses).
-    Ethernet.maintain();
+    // DHCP lease renewal. Only ever call maintain() while we actually hold a lease:
+    // with none, the library's checkLease() matches its "_rebindInSec == 0 &&
+    // _dhcp_state == STATE_DHCP_START" arm — precisely the state a *failed* attempt
+    // leaves behind — and re-runs the blocking request_DHCP_lease() on every single
+    // call, at the timeout of the last begin(). Unguarded, a booted-with-no-DHCP-
+    // server unit therefore stalls loop() for 6 s per pass, forever: the front panel
+    // stops responding and both channel links flap on their 500 ms telemetry
+    // timeout. Re-acquisition belongs to the bounded, rate-limited retry below.
+    if (s_dhcp && s_leased) {
+        int rc = Ethernet.maintain();
+        // 1 = renew failed, 3 = rebind failed: the lease is gone and the library is
+        // back in STATE_DHCP_START, so stop calling maintain() and let the retry
+        // path (with its short budget) do the re-acquisition.
+        if (rc == 1 || rc == 3) s_leased = false;
+    }
 
-    // Slow DHCP retry: reacquire a lease if we booted before the network came up.
-    if (s_dhcp && !netcfg_has_ip() && netcfg_link_up()) {
+    // Slow DHCP retry: reacquire a lease if we booted before the network came up,
+    // or lost it later. Gated on link-up, so an unplugged cable costs nothing.
+    if (s_dhcp && !s_leased && netcfg_link_up()) {
         uint32_t now = millis();
         if ((uint32_t)(now - s_lastRetryMs) >= NET_DHCP_RETRY_PERIOD_MS) {
             s_lastRetryMs = now;
-            Ethernet.begin(s_mac, NET_DHCP_RETRY_TIMEOUT_MS, NET_DHCP_RETRY_RESP_MS);
+            // The attempt blocks for up to NET_DHCP_RETRY_TIMEOUT_MS with the UART
+            // links unserviced. Ping both channels first so their comms watchdogs
+            // start the window fresh, and again after so a link marked down on the
+            // brain side recovers on the next telemetry push instead of waiting.
+            channel_ping(0); channel_ping(1);
+            s_leased = (Ethernet.begin(s_mac, NET_DHCP_RETRY_TIMEOUT_MS,
+                                       NET_DHCP_RETRY_RESP_MS) == 1);
+            channel_ping(0); channel_ping(1);
+            channel_link_task();
         }
     }
 }

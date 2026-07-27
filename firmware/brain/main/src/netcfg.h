@@ -27,13 +27,16 @@
 #define NETCFG_SCPI_PORT 5025
 
 /* Bring up the W5500 and start the SCPI TCP server. Loads the persisted config
- * (defaults applied if absent/corrupt) and derives the MAC. Non-blocking: a DHCP
- * request is started but not waited on, so a missing cable/server never stalls
- * boot. Call once from setup() AFTER EEPROM.begin(). */
+ * (defaults applied if absent/corrupt) and derives the MAC. In DHCP mode this
+ * blocks on the lease request, but bounded (see NET_DHCP_INIT_TIMEOUT_MS), so a
+ * missing cable/server only delays boot — it can never hang it. Call once from
+ * setup() AFTER EEPROM.begin(). */
 void netcfg_init();
 
 /* Service the transport every loop: accept new SCPI clients, drain their RX into
- * the SCPI parser, prune dropped connections and renew the DHCP lease. */
+ * the SCPI parser, prune dropped connections and renew the DHCP lease.
+ * Bounded: the only blocking work is a DHCP re-acquisition, which is rate-limited
+ * to NET_DHCP_RETRY_PERIOD_MS and budgeted below the channel comms watchdog. */
 void netcfg_task();
 
 /* Re-configure the interface from the current (pending) config and persist it.
