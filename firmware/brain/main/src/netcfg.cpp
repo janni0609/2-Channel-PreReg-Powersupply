@@ -31,11 +31,15 @@
 // has a lease or the timeout expires), so every millisecond spent here is a
 // millisecond loop() is not polling the front panel or feeding the channels.
 //
-// The initial lease attempt at boot is bounded so a missing cable/server can only
-// stall startup briefly (the OLED is already showing the readout by then, and the
-// channel outputs are still off). If it fails, netcfg_task() retries on a slow
-// cadence while the cable is up, so the supply self-heals once the network appears
-// without any panel interaction.
+// The initial lease attempt at boot is therefore skipped entirely unless the PHY
+// already reports link-up: with no cable there is nobody to answer, and spending
+// the full timeout would leave the front panel dead for seconds after power-on for
+// no gain. It is also bounded, so a cable into a network without a DHCP server can
+// only stall startup briefly (the OLED is already showing the readout by then, and
+// the channel outputs are still off). If it is skipped or fails, netcfg_task()
+// retries while the cable is up — promptly on the link-up edge, then on a slow
+// cadence — so the supply self-heals once the network appears without any panel
+// interaction.
 //
 // The retry budget is deliberately shorter than the channel-side comms watchdog
 // (COMMS_TIMEOUT_MS = 1000 ms): a retry that outran it would make both channels
@@ -46,6 +50,9 @@
 #define NET_DHCP_RETRY_TIMEOUT_MS 800
 #define NET_DHCP_RETRY_RESP_MS    250
 #define NET_DHCP_RETRY_PERIOD_MS  20000u
+// Settle time granted to the switch port after a link-up edge before the first
+// retry fires (autoneg/STB learning would swallow a DISCOVER sent immediately).
+#define NET_DHCP_LINKUP_DELAY_MS  1000u
 
 // ── Persisted configuration ─────────────────────────────────────────────────────
 // Own EEPROM slot (magic/version/CRC), separate from the thermal/runtime/setpoint
@@ -80,6 +87,7 @@ static bool    s_hwPresent   = false;
 static bool    s_inited      = false;
 static bool    s_applyPending = false;
 static uint32_t s_lastRetryMs = 0;
+static bool    s_prevLink    = false;   // link-up edge detector for the retry clock
 // True only while we believe we hold a DHCP lease. This gates Ethernet.maintain()
 // — see netcfg_task() for why calling it without a lease is fatal to the UI.
 static bool    s_leased      = false;
@@ -162,9 +170,19 @@ static void bringUp() {
     Ethernet.init(NET_PIN_CS);
 
     if (s_dhcp) {
-        // Bounded, so a missing DHCP server can't hang boot for long.
-        s_leased = (Ethernet.begin(s_mac, NET_DHCP_INIT_TIMEOUT_MS,
-                                   NET_DHCP_INIT_RESP_MS) == 1);
+        // linkStatus() probes/initialises the chip itself, so it is safe (and cheap)
+        // before any begin(). With no cable there is no point paying the DHCP
+        // timeout: configure the interface unaddressed and leave acquisition to the
+        // link-gated retry in netcfg_task().
+        if (Ethernet.linkStatus() == LinkON) {
+            // Bounded, so a network without a DHCP server can't hang boot for long.
+            s_leased = (Ethernet.begin(s_mac, NET_DHCP_INIT_TIMEOUT_MS,
+                                       NET_DHCP_INIT_RESP_MS) == 1);
+        } else {
+            s_leased = false;
+            IPAddress zero(0, 0, 0, 0);
+            Ethernet.begin(s_mac, zero, zero, zero, zero);   // non-blocking
+        }
     } else {
         s_leased = false;                           // static: nothing to renew
         IPAddress ip(s_ip[0], s_ip[1], s_ip[2], s_ip[3]);
@@ -292,7 +310,15 @@ void netcfg_task() {
 
     // Slow DHCP retry: reacquire a lease if we booted before the network came up,
     // or lost it later. Gated on link-up, so an unplugged cable costs nothing.
-    if (s_dhcp && !s_leased && netcfg_link_up()) {
+    bool linkUp = netcfg_link_up();
+    if (linkUp && !s_prevLink) {
+        // Cable just appeared: don't make the user wait out a whole retry period.
+        // Backdate the retry clock so the next attempt fires after the settle time.
+        s_lastRetryMs = millis() - (NET_DHCP_RETRY_PERIOD_MS - NET_DHCP_LINKUP_DELAY_MS);
+    }
+    s_prevLink = linkUp;
+
+    if (s_dhcp && !s_leased && linkUp) {
         uint32_t now = millis();
         if ((uint32_t)(now - s_lastRetryMs) >= NET_DHCP_RETRY_PERIOD_MS) {
             s_lastRetryMs = now;

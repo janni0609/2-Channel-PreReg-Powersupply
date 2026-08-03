@@ -90,15 +90,11 @@ uint8_t W5100Class::init(void)
 
 	if (initialized) return 1;
 
-	// Many Ethernet shields have a CAT811 or similar reset chip
-	// connected to W5100 or W5200 chips.  The W5200 will not work at
-	// all, and may even drive its MISO pin, until given an active low
-	// reset pulse!  The CAT811 has a 240 ms typical pulse length, and
-	// a 400 ms worst case maximum pulse length.  MAX811 has a worst
-	// case maximum 560 ms pulse length.  This delay is meant to wait
-	// until the reset pulse is ended.  If your hardware has a shorter
-	// reset time, this can be edited or removed.
-	delay(560);
+	// Upstream waits delay(560) here for the CAT811/MAX811 reset chip found on
+	// many Ethernet shields.  This board has no such supervisor: the W5500's RST
+	// pin is driven directly by netcfg.cpp bringUp(), which already issues the
+	// pulse and waits ~60 ms for the chip to settle before anything calls init().
+	// The blocking wait is dropped so power-on doesn't hold up the front panel.
 	//Serial.println("w5100 init");
 
 	SPI.begin();
