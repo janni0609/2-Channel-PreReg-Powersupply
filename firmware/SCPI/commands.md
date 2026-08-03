@@ -28,7 +28,7 @@ works with VISA, PyVISA, `lxi`, NI-MAX, and generic terminal tools.
 | Property                | Value                                                   |
 |-------------------------|---------------------------------------------------------|
 | Channels                | 2 (CH1, CH2) — independent, isolated                    |
-| Output voltage          | 0 … 35.000 V per channel                                |
+| Output voltage          | 0 … 36.000 V per channel                                |
 | Output current limit    | 0 … 2.000 A per channel                                 |
 | Setpoint resolution     | 1 mV / 1 mA (protocol carries int32 mV / mA)            |
 | Measurement             | V, I, P (V·I) per channel; one system temperature        |
@@ -39,7 +39,7 @@ works with VISA, PyVISA, `lxi`, NI-MAX, and generic terminal tools.
 
 > **Firmware note:** the setpoint clamps in `firmware/channel/include/config.h`
 > (`SETPOINT_V_MAX_MV`, `SETPOINT_I_MAX_MA`) must match these limits — set them
-> to `35000` and `2000` respectively.
+> to `36000` and `2000` respectively.
 
 ---
 
@@ -72,7 +72,7 @@ ON|OFF|1|0, `[]` = optional node, `{a|b}` = choice.
 
 | Command | Action |
 |---------|--------|
-| `*IDN?` | Identify. Returns `Manufacturer,Model,Serial,FW-version` e.g. `PreReg,PSU-2CH-30V5A,SN00001,1.0.0` |
+| `*IDN?` | Identify. Returns `Manufacturer,Model,Serial,FW-version` e.g. `PreReg,PSU-2CH-36V2A,SN00001,0.2.0` |
 | `*RST`  | Reset to default state: both outputs **OFF**, V=0, I limit=MAX, protections cleared. Maps to `SET_OUTPUT 0` on both channels. |
 | `*CLS`  | Clear status: error queue, Standard Event (ESR) and Questionable/Operation event registers. |
 | `*ESE <NRf>` / `*ESE?` | Set/query Standard Event Status **Enable** mask. |
@@ -270,7 +270,7 @@ Standard SCPI error queue (negative = SCPI-defined, positive = device-specific):
 | `-109` | Missing parameter | too few parameters |
 | `-113` | Undefined header | unknown command |
 | `-120` | Numeric data error | malformed number |
-| `-222` | Data out of range | value clamped to MIN/MAX (e.g. V>35, I>2) |
+| `-222` | Data out of range | value clamped to MIN/MAX (e.g. V>36, I>2) |
 | `-241` | Hardware missing | channel not responding on UART |
 | `-315` | Configuration memory lost | EEPROM cal CRC bad |
 | `+101` | Channel self-test failed | `EVT_SELFTEST_FAIL` |
