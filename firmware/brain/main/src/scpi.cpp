@@ -874,7 +874,15 @@ void scpi_process_line(const char *line, ScpiWriteFn write, void *ctx) {
     }
 
     if (s_respHas && write) {
-        respRaw("\n");
+        // Terminate directly rather than via respRaw(): once the buffer is full
+        // respRaw() drops what it is given, so a ';'-chained line whose combined
+        // response exceeds SCPI_RESP_MAX used to go out with no trailing LF at
+        // all, and the client waited forever for a line that never ended. The
+        // response is still truncated in that case - it does not fit, and the
+        // transport is line-oriented - but it is always a complete line.
+        if (s_respLen > SCPI_RESP_MAX - 2) s_respLen = SCPI_RESP_MAX - 2;
+        s_resp[s_respLen++] = '\n';
+        s_resp[s_respLen]   = '\0';
         write(ctx, s_resp, (size_t)s_respLen);
     }
 }
