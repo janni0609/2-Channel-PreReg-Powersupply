@@ -240,6 +240,8 @@ public:
 	virtual IPAddress remoteIP();
 	virtual uint16_t remotePort();
 	virtual void setConnectionTimeout(uint16_t timeout) { _timeout = timeout; }
+	// Local addition: W5500 TCP keep-alive, in units of 5 s (0 = off, default).
+	void setKeepAlive(uint8_t interval5s);
 
 	friend class EthernetServer;
 

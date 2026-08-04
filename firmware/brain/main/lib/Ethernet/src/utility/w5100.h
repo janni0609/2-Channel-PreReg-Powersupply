@@ -49,6 +49,36 @@
 #endif
 
 
+// ── Local modifications to the vendored Arduino Ethernet 2.0.2 driver ─────────
+// Upstream busy-waits on the W5x00 with no upper bound in several places. Every
+// one of them runs from loop() on this board (netcfg_task() -> the SCPI TCP
+// server), so an unbounded wait does not merely stall the network: it stops the
+// front panel, the USB console and the channel-link watchdogs dead. That was the
+// cause of the "brain freezes during sustained SCPI sessions" fault - see
+// firmware/brain/NETWORK_HANG_HANDOVER.md §0 for the reproduction.
+//
+// The three caps below replace "wait forever" with "give up and let the caller
+// deal with it". Losing a SCPI response is a non-event; losing loop() is not.
+
+// Wall-clock budget for one socketSend(): covers both the wait for W5500 TX
+// buffer space and the wait for the send to be acknowledged. A peer on a healthy
+// LAN drains the 2 KB buffer in microseconds, so this only ever expires when the
+// peer has stopped reading (a shut TCP window) or vanished mid-transfer.
+// Deliberately well under the channel-side comms watchdog (COMMS_TIMEOUT_MS =
+// 1000 ms) even with all four SCPI sockets timing out back-to-back.
+#define W5100_SEND_TIMEOUT_MS 100u
+
+// Iteration cap for execCmdSn()'s wait for Sn_CR to self-clear. The chip clears
+// it within a few SPI reads; a cap this large is never reached in normal
+// operation but stops a desynced or absent chip (whose registers read back as a
+// constant non-zero) from spinning forever.
+#define W5100_CMD_POLL_MAX 10000u
+
+// Iteration cap for the "read the register twice and accept it once two reads
+// agree" pattern used for the free/received-size registers. Those genuinely can
+// change under the read, so retrying is right; retrying without a bound is not.
+#define W5100_SIZE_POLL_MAX 32u
+
 typedef uint8_t SOCKET;
 
 class SnMR {
@@ -289,6 +319,11 @@ public:
   __SOCKET_REGISTER16(SnRX_RSR,   0x0026)        // RX Free Size
   __SOCKET_REGISTER16(SnRX_RD,    0x0028)        // RX Read Pointer
   __SOCKET_REGISTER16(SnRX_WR,    0x002A)        // RX Write Pointer (supported?)
+  // Local addition (W5200/W5500 only): keep-alive timer, in units of 5 s.
+  // 0 = disabled, which is the power-on default and the reason an abandoned SCPI
+  // session used to hold its slot in netcfg.cpp's client pool forever - nothing
+  // ever moved the socket out of ESTABLISHED. Upstream never exposed it.
+  __SOCKET_REGISTER8(SnKPALVTR,   0x002F)        // Keep-alive timer (x 5 s)
 
 #undef __SOCKET_REGISTER8
 #undef __SOCKET_REGISTER16

@@ -465,6 +465,12 @@ void W5100Class::execCmdSn(SOCKET s, SockCMD _cmd)
 {
 	// Send command to socket
 	writeSnCR(s, _cmd);
-	// Wait for command to complete
-	while (readSnCR(s)) ;
+	// Wait for command to complete. Upstream spins here with no bound; this
+	// runs from loop() on every socket recv/send/close, so a chip that stops
+	// answering (SPI desync, or the W5500 held in reset) would take the whole
+	// instrument down with it. Cap the poll and move on - the caller re-reads
+	// the socket status on the next pass anyway.
+	for (uint16_t guard = 0; guard < W5100_CMD_POLL_MAX; guard++) {
+		if (readSnCR(s) == 0) return;
+	}
 }

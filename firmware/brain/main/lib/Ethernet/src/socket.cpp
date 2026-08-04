@@ -262,21 +262,19 @@ void EthernetClass::socketDisconnect(uint8_t s)
 
 static uint16_t getSnRX_RSR(uint8_t s)
 {
-#if 1
         uint16_t val, prev;
 
+        // Two agreeing reads guard against the chip updating the counter while
+        // it is being read. Bounded (upstream loops forever): if it never
+        // settles the last value is close enough - the caller re-reads next
+        // pass - and any bound at all is better than stalling loop().
         prev = W5100.readSnRX_RSR(s);
-        while (1) {
+        for (uint8_t guard = 0; guard < W5100_SIZE_POLL_MAX; guard++) {
                 val = W5100.readSnRX_RSR(s);
-                if (val == prev) {
-			return val;
-		}
+                if (val == prev) return val;
                 prev = val;
         }
-#else
-	uint16_t val = W5100.readSnRX_RSR(s);
-	return val;
-#endif
+        return prev;
 }
 
 static void read_data(uint8_t s, uint16_t src, uint8_t *dst, uint16_t len)
@@ -383,8 +381,9 @@ static uint16_t getSnTX_FSR(uint8_t s)
 {
         uint16_t val, prev;
 
+        // Bounded for the same reason as getSnRX_RSR() above.
         prev = W5100.readSnTX_FSR(s);
-        while (1) {
+        for (uint8_t guard = 0; guard < W5100_SIZE_POLL_MAX; guard++) {
                 val = W5100.readSnTX_FSR(s);
                 if (val == prev) {
 			state[s].TX_FSR = val;
@@ -392,6 +391,8 @@ static uint16_t getSnTX_FSR(uint8_t s)
 		}
                 prev = val;
         }
+        state[s].TX_FSR = prev;
+        return prev;
 }
 
 
@@ -417,7 +418,18 @@ static void write_data(uint8_t s, uint16_t data_offset, const uint8_t *data, uin
 
 /**
  * @brief	This function used to send the data in TCP mode
- * @return	1 for success else 0.
+ * @return	number of bytes accepted, or 0 on failure/timeout.
+ *
+ * Both waits below are bounded by W5100_SEND_TIMEOUT_MS. Upstream bounds
+ * neither, and the first one was the cause of the sustained-SCPI freeze: it
+ * waits for W5500 TX buffer space and leaves the loop only if the socket drops
+ * out of ESTABLISHED/CLOSE_WAIT. A peer that stops reading while keeping the
+ * connection open advertises a zero window - the chip never frees TX space and
+ * the socket stays perfectly ESTABLISHED, so the loop never ends. Reproduced on
+ * the bench: the instrument went unreachable on both transports within 14 s,
+ * its uptime counter ran straight through the outage (so it was blocked, not
+ * crashed), and it only came back when the peer reopened its window. See
+ * firmware/brain/NETWORK_HANG_HANDOVER.md §0.
  */
 uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
 {
@@ -431,28 +443,51 @@ uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
 		ret = len;
 	}
 
-	// if freebuf is available, start.
-	do {
+	// Wait for room in the chip's TX buffer, but not indefinitely: a peer that
+	// has stopped draining must cost us this budget and no more.
+	uint32_t start = millis();
+	for (;;) {
 		SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
 		freesize = getSnTX_FSR(s);
 		status = W5100.readSnSR(s);
 		SPI.endTransaction();
 		if ((status != SnSR::ESTABLISHED) && (status != SnSR::CLOSE_WAIT)) {
-			ret = 0;
-			break;
+			return 0;               // socket died under us
+		}
+		if (freesize >= ret) break;     // enough room, go
+		if ((uint32_t)(millis() - start) > W5100_SEND_TIMEOUT_MS) {
+			return 0;               // window shut: drop the write, keep loop() alive
 		}
 		yield();
-	} while (freesize < ret);
+	}
 
 	// copy data
 	SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
 	write_data(s, 0, (uint8_t *)buf, ret);
+	// Clear any stale SEND_OK left behind by a previous send that timed out
+	// below, so the wait that follows cannot mistake it for this send's
+	// completion. Sn_IR bits are write-1-to-clear.
+	W5100.writeSnIR(s, SnIR::SEND_OK);
 	W5100.execCmdSn(s, Sock_SEND);
 
-	/* +2008.01 bj */
-	while ( (W5100.readSnIR(s) & SnIR::SEND_OK) != SnIR::SEND_OK ) {
-		/* m2008.01 [bj] : reduce code */
-		if ( W5100.readSnSR(s) == SnSR::CLOSED ) {
+	for (;;) {
+		uint8_t ir = W5100.readSnIR(s);
+		if (ir & SnIR::SEND_OK) break;
+		// Upstream checks only for CLOSED here and ignores TIMEOUT, even though
+		// socketSendUDP() below does check it. Sn_IR TIMEOUT is set when ARP or
+		// TCP retransmission gives up.
+		if (ir & SnIR::TIMEOUT) {
+			W5100.writeSnIR(s, (uint8_t)(SnIR::SEND_OK | SnIR::TIMEOUT));
+			SPI.endTransaction();
+			return 0;
+		}
+		if (W5100.readSnSR(s) == SnSR::CLOSED) {
+			SPI.endTransaction();
+			return 0;
+		}
+		if ((uint32_t)(millis() - start) > W5100_SEND_TIMEOUT_MS) {
+			// Still unacknowledged. The chip carries on retransmitting on its
+			// own; we simply stop waiting for it.
 			SPI.endTransaction();
 			return 0;
 		}

@@ -122,11 +122,30 @@ int EthernetClient::read()
 
 void EthernetClient::flush()
 {
+	// Bounded (upstream loops forever): this is Print::flush(), so any caller
+	// that drains a client would otherwise be able to stall loop() for as long
+	// as the peer keeps its receive window shut. Same budget as socketSend().
+	uint32_t start = millis();
 	while (_sockindex < MAX_SOCK_NUM) {
 		uint8_t stat = Ethernet.socketStatus(_sockindex);
 		if (stat != SnSR::ESTABLISHED && stat != SnSR::CLOSE_WAIT) return;
 		if (Ethernet.socketSendAvailable(_sockindex) >= W5100.SSIZE) return;
+		if ((uint32_t)(millis() - start) > W5100_SEND_TIMEOUT_MS) return;
+		yield();
 	}
+}
+
+// Enable the W5500's TCP keep-alive on this socket. `interval5s` is in units of
+// 5 s (0 disables, the power-on default). With it on, the chip probes an idle
+// peer by itself and closes the socket when the probes go unanswered, which is
+// what lets netcfg.cpp reclaim a pool slot whose peer vanished without ever
+// sending a FIN (cable pulled, host slept, machine powered off).
+void EthernetClient::setKeepAlive(uint8_t interval5s)
+{
+	if (_sockindex >= MAX_SOCK_NUM) return;
+	SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+	W5100.writeSnKPALVTR(_sockindex, interval5s);
+	SPI.endTransaction();
 }
 
 void EthernetClient::stop()
