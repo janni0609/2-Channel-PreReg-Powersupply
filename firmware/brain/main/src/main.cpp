@@ -18,6 +18,10 @@
 // to 1 only for bring-up on a dedicated serial monitor.
 #define BRAIN_SERIAL_DEBUG 0
 
+// Hardware watchdog period. Armed at the end of setup() and fed at the end of
+// every loop(); see the comment there for why it exists and why this value.
+#define BRAIN_WDT_TIMEOUT_MS 4000
+
 // ── Front-panel OLED wiring (SSD1322 256x64) on the RP2350-Tiny brain ──────────
 //   RES  -> GPIO9     reset          (manual GPIO)
 //   SCK  -> GPIO10    SPI1 SCK
@@ -1584,6 +1588,17 @@ void setup() {
     // the first accepted client can arrive as soon as the server is listening.
     scpi_init();
     netcfg_init();   // W5500 + SCPI TCP server on port 5025
+
+    // Hardware watchdog, armed last so the bounded-but-slow bring-up above (DHCP,
+    // the OLED reset delays, the EEPROM reads) is never counted against it.
+    // Defence in depth: the blocking-call bugs that used to freeze loop() are
+    // fixed at source, but the outputs are live during bench runs and an
+    // instrument that stops servicing its front panel must not stay that way.
+    // BRAIN_WDT_TIMEOUT_MS is far above any legitimate pass - the slowest are a
+    // DHCP renewal (~1 s worst case) and an EEPROM.commit() flash erase (tens of
+    // ms) - so only a genuine wedge reaches it. A reset drops both outputs,
+    // which is the safe direction.
+    rp2040.wdt_begin(BRAIN_WDT_TIMEOUT_MS);
 }
 
 // ── Network submenu editing (octet + hostname pickers) ──────────────────────────
@@ -2097,4 +2112,6 @@ void loop() {
             drawSubmenu();
         }
     }
+
+    rp2040.wdt_reset();    // completed a pass: the watchdog stays happy
 }
