@@ -281,31 +281,40 @@ ramp of the full range in fine steps, comparing three numbers at every step:
 
 Voltage: 0 → 36 V in 500 mV steps, open circuit. Current: 0 → 2 A in 25 mA steps
 into the DMM's own current input as the load, 2 V compliance. Figures are for the
-instrument **as it stands today**, i.e. calibrated, and exclude the 0 V / 0 A
-point (output floor, not an accuracy error) and the clipped top of the current
-range (see [Known issues](#known-issues)).
+instrument **as it stands today**, i.e. calibrated, and exclude the two endpoints
+the channel physically cannot reach: the 0 V / 0 A setpoint (output floor, not an
+accuracy error) and the clipped top of the current range (see
+[Known issues](#known-issues)). `psu_accuracy.py` applies both exclusions itself,
+so these numbers come straight out of its report; `--keep-endpoints` reports every
+point instead.
 
 ### Results
 
 | | CH1 setpoint | CH1 readback | CH2 setpoint | CH2 readback |
 | --- | --- | --- | --- | --- |
-| **Voltage** rms | 8.8 mV | **0.71 mV** | 5.1 mV | 1.4 mV |
-| worst | 16.6 mV | 1.6 mV | 11.6 mV | 2.8 mV |
-| gain error | −0.0009 % | +0.0018 % | −0.0024 % | −0.0003 % |
-| **Current** rms | **0.29 mA** | 0.68 mA | **0.47 mA** | 2.0 mA |
-| worst | 0.64 mA | 1.19 mA | 1.25 mA | 3.7 mA |
-| gain error | −0.023 % | +0.110 % | +0.029 % | +0.176 % |
+| **Voltage** rms | 8.8 mV | **0.74 mV** | 5.1 mV | 1.4 mV |
+| worst | 16.5 mV | 2.1 mV | 11.6 mV | 2.8 mV |
+| gain error | −0.0005 % | +0.0025 % | −0.0024 % | −0.0003 % |
+| **Current** rms | **0.30 mA** | 0.12 mA | **0.52 mA** | 0.16 mA |
+| worst | 0.79 mA | 0.39 mA | 1.36 mA | 0.51 mA |
+| gain error | +0.012 % | +0.013 % | +0.035 % | +0.019 % |
+
+Both current columns were re-measured on 2026-08-04, after the measure-path
+calibration bug was found and fixed and both channels' `IMEAS` re-calibrated.
+The readback paths went from 0.78 mA rms / +0.135 % gain / −1.38 mA offset (CH1)
+and 2.0 mA rms / +0.176 % gain (CH2) to the numbers above — an order of
+magnitude, and the −1.4 mA offset that had been blamed on the shunt turned out to
+be an artefact of the bad fit.
 
 In short, worst of both channels: **voltage setpoint ±17 mV (≈0.05 % FS), voltage
-readback ±2.8 mV, current setpoint ±1.3 mA (≈0.06 % FS), current readback
-±3.7 mA**. Every voltage gain error
-is inside ±0.003 %, so the calibration is doing its job there. The two current
-readback gain errors (~0.1–0.18 %) are the exception, and are a firmware bug
-rather than a hardware limit — see [Known issues](#known-issues).
+readback ±2.8 mV, current setpoint ±1.4 mA (≈0.07 % FS), current readback
+±0.51 mA**. Every voltage gain error is inside ±0.003 % and every current gain
+error is now inside ±0.04 %, so the calibration is doing its job on every path.
+The current readback is at ~5 ADC LSB worst case.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="Calc/evaluation/results/ramp_ch1_20260803_235907_postcal_dark.png">
-  <img alt="CH1 output-voltage accuracy against the SDM3065X: absolute deviation, relative deviation, and linearity" src="Calc/evaluation/results/ramp_ch1_20260803_235907_postcal_light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="Calc/evaluation/results/ramp_v_ch1_20260804_231349_ch1_v_baseline_dark.png">
+  <img alt="CH1 output-voltage accuracy against the SDM3065X: absolute and relative deviation" src="Calc/evaluation/results/ramp_v_ch1_20260804_231349_ch1_v_baseline_light.png">
 </picture>
 
 The voltage setpoint trace is the interesting one. Its error is **not**
@@ -319,20 +328,24 @@ tuning problem** — improving it needs an external DAC reference (the `Vref` pi
 not routed) or more DAC bits.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="Calc/evaluation/results/ramp_i_ch1_20260804_143727_postcal_dark.png">
-  <img alt="CH1 output-current accuracy against the SDM3065X after calibration" src="Calc/evaluation/results/ramp_i_ch1_20260804_143727_postcal_light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="Calc/evaluation/results/ramp_i_ch1_20260804_224335_ch1_imeas_fix_dark.png">
+  <img alt="CH1 output-current accuracy against the SDM3065X after calibration" src="Calc/evaluation/results/ramp_i_ch1_20260804_224335_ch1_imeas_fix_light.png">
 </picture>
 
-Current is the opposite case, and shows what calibration *can* do. Before
-calibration CH1's setpoint error was a clean tilt — gain +0.176 %, running from
-−1.2 mA at 100 mA to +1.8 mA at 2 A. A 2-point fit removes a tilt exactly, and
-did: gain −0.023 %, rms 0.89 → 0.29 mA, flat to within ±0.3 mA across the whole
-range. CH2 behaved the same way (rms 0.92 → 0.47 mA). The upward hook at the very
-top of the plot is the ISET DAC clipping, not an accuracy error.
+Current is the opposite case, and shows what calibration *can* do. Both of CH1's
+current paths were a clean tilt beforehand — an error proportional to reading,
+which is exactly the shape a 2-point fit removes. The setpoint went from +0.176 %
+gain (−1.2 mA at 100 mA rising to +1.8 mA at 2 A) to +0.012 %, rms 0.89 →
+0.30 mA; the readback went from +0.135 % gain with a −1.38 mA offset to
++0.013 %, rms 0.78 → 0.12 mA. Both traces are now flat inside ±0.8 mA across the
+range, with the readback at ~4 ADC LSB. CH2 behaves the same way.
 
-**Rule of thumb from this:** look at the linearity panel before calibrating. A
-*tilt* or an offset is gain/offset error and calibration will remove it. A *bow*
-is INL and it will not.
+**Rule of thumb from this:** plot the error against reading before calibrating. A
+*tilt*, or a constant offset, is gain/offset error and a 2-point fit removes it
+exactly. A *bow* between the cal points is INL and it will not — which is why the
+voltage setpoint above does not improve however often it is re-run. The report's
+`worst non-linearity` row measures that bow; compare it against the quantisation
+floor printed beneath it.
 
 All raw data, per-run reports and both channels' plots are in
 [`Calc/evaluation/results/`](Calc/evaluation/results/); the harness, wiring and
@@ -410,17 +423,21 @@ Calc/
   but `DEFAULT_I_DIV` in `calibration.cpp` assumes 1.2 → 2.033 A and
   `SETPOINT_I_MAX_MA` is 2000; the channel spread on top is band-gap and shunt
   tolerance. The top ~1–2 % of the current range is not reachable.
-- **Calibrating the measure paths (`VMEAS`/`IMEAS`) appears to have no effect**,
-  while the set paths (`VSET`/`ISET`) demonstrably work. Measured on both
-  channels: `CAL:COMM IMEAS` leaves the gain error unchanged (CH2: 0.173 % →
-  0.176 %), and the readback error *at the cal point itself* does not move
-  (+0.39 → +0.42 mA) — but a 2-point fit must pass through its own points. Both
-  channels' `IMEAS` therefore still carry a real ~0.17 % gain error that
-  calibration ought to remove. Not the PGA (it is pinned, see above). Evidence,
-  code map and suggested experiments:
-  [`firmware/channel/CAL_MEAS_BUG_HANDOVER.md`](firmware/channel/CAL_MEAS_BUG_HANDOVER.md).
 - `CALibration:DATA?` returns NaN over SCPI: gain/offset cannot currently be read
-  back across the channel link.
+  back across the channel link. `CAL:POINt`/`CAL:COMMit` are also fire-and-forget
+  — the channel's NACK lands in `lastNackCmd` and the SCPI handler never looks at
+  it — so a rejected commit is invisible to the host. Between them these kept a
+  (now fixed) measure-path calibration bug hidden for far longer than it should
+  have been. Until they are addressed, re-drive the cal points and check the
+  readback residual (as `psu_accuracy.py` now does) rather than trusting
+  `CAL:VALid?`.
+- **A setpoint written immediately after `CAL:COMMit` is occasionally dropped.**
+  Seen 3/3 times as the first `CURR` after committing `IMEAS` in a full
+  calibration sequence, and 0/17 in isolated retries — so it is real but not yet
+  root-caused. Ruled out: the channel is not stalled by the EEPROM write (the
+  link never drops, `OUTP?` held over 3592 samples across a commit), and it is
+  not a frame-size overflow. Leave a settle after a commit, and verify setpoints
+  actually landed before measuring against them.
 - The hostname set in *Settings → Network* is stored and displayed, but the stock
   Ethernet DHCP client does not advertise it to the DHCP server.
 - The CV/CC mode is shown on the panel by a hardware-driven LED, but the `CC/CV`

@@ -428,8 +428,7 @@ static void write_data(uint8_t s, uint16_t data_offset, const uint8_t *data, uin
  * the socket stays perfectly ESTABLISHED, so the loop never ends. Reproduced on
  * the bench: the instrument went unreachable on both transports within 14 s,
  * its uptime counter ran straight through the outage (so it was blocked, not
- * crashed), and it only came back when the peer reopened its window. See
- * firmware/brain/NETWORK_HANG_HANDOVER.md §0.
+ * crashed), and it only came back when the peer reopened its window.
  */
 uint16_t EthernetClass::socketSend(uint8_t s, const uint8_t * buf, uint16_t len)
 {

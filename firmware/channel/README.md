@@ -14,6 +14,18 @@ pio device monitor      # 1000000 baud (1 Mbps), the Brain link
 
 Adjust `upload_protocol` in `platformio.ini` for your UPDI programmer.
 
+**Flashing does not wipe the calibration.** `-t upload` chip-erases, but both
+chips have `SYSCFG0 = 0xC5`, i.e. the EESAVE fuse is set, so EEPROM survives
+(verified by reading it back byte-for-byte either side of an upload). If that
+fuse is ever cleared, back the EEPROM up first and restore it afterwards:
+
+```sh
+avrdude -c serialupdi -p attiny1614 -P COM<n> -b 115200 -U eeprom:r:backup.bin:r
+```
+
+That same read is currently the only way to recover the stored gain/offset
+values, since `CAL:DATA?` returns NaN over SCPI.
+
 ## Architecture
 
 Layered, cooperative super-loop (no RTOS). One shared `g_state` is the single

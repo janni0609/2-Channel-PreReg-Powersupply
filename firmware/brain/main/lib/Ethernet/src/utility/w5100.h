@@ -54,8 +54,11 @@
 // one of them runs from loop() on this board (netcfg_task() -> the SCPI TCP
 // server), so an unbounded wait does not merely stall the network: it stops the
 // front panel, the USB console and the channel-link watchdogs dead. That was the
-// cause of the "brain freezes during sustained SCPI sessions" fault - see
-// firmware/brain/NETWORK_HANG_HANDOVER.md §0 for the reproduction.
+// cause of the "brain freezes during sustained SCPI sessions" fault: a peer
+// that stops reading while holding the connection open shuts its TCP window,
+// the W5500 never frees TX space, and the unbounded wait in socketSend() never
+// returns. Reproduced on the bench with a client that opened a session and then
+// stopped reading.
 //
 // The three caps below replace "wait forever" with "give up and let the caller
 // deal with it". Losing a SCPI response is a non-event; losing loop() is not.

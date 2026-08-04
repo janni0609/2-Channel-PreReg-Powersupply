@@ -43,8 +43,8 @@
 // closes properly. A peer that vanishes without a FIN (cable pulled, host slept,
 // machine powered off) leaves its socket ESTABLISHED forever, so its slot is
 // never reclaimed; four of those and the instrument is unreachable over LAN with
-// nothing whatsoever wrong with loop(). Confirmed on the bench - see
-// firmware/brain/NETWORK_HANG_HANDOVER.md §0b. Two independent backstops:
+// nothing whatsoever wrong with loop(). Confirmed on the bench by killing SCPI
+// clients without closing them. Two independent backstops:
 //
 // 1. The W5500's own TCP keep-alive (Sn_KPALVTR), off by default. With it set,
 //    the chip probes an idle peer by itself and drops the socket when the probes

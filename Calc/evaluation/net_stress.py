@@ -3,7 +3,7 @@
 net_stress.py - SCPI network stress + liveness harness for the PSU brain (RP2350).
 
 Purpose: reproduce the "brain freezes during sustained SCPI sessions" fault
-described in firmware/brain/NETWORK_HANG_HANDOVER.md, and - crucially - tell
+described in the brain's Ethernet/netcfg comments, and - crucially - tell
 apart the two failure classes it can belong to, which the handover says is the
 single most important observation:
 
