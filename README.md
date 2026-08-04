@@ -416,8 +416,9 @@ Calc/
   0.176 %), and the readback error *at the cal point itself* does not move
   (+0.39 → +0.42 mA) — but a 2-point fit must pass through its own points. Both
   channels' `IMEAS` therefore still carry a real ~0.17 % gain error that
-  calibration ought to remove. Not the PGA (it is pinned, see above); suspect the
-  x-value captured for measure paths in `comms.cpp` `CMD_CAL_POINT`.
+  calibration ought to remove. Not the PGA (it is pinned, see above). Evidence,
+  code map and suggested experiments:
+  [`firmware/channel/CAL_MEAS_BUG_HANDOVER.md`](firmware/channel/CAL_MEAS_BUG_HANDOVER.md).
 - `CALibration:DATA?` returns NaN over SCPI: gain/offset cannot currently be read
   back across the channel link.
 - The hostname set in *Settings → Network* is stored and displayed, but the stock
