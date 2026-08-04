@@ -3,19 +3,19 @@ Current accuracy report - CH1
 ==============================================================================
 PSU        : PreReg,PSU-2CH-36V2A,SN00001,0.2.0
 DMM        : Siglent Technologies,SDM3065X,SDM36HCQ7R1239,3.02.01.12R1
-Points     : 81   span 0 .. 1.9894 A
-DMM noise  : mean sample sd 10.6 uA, worst 36.3 uA
-System temp: 31.0 .. 46.7 C (OTP trips at 60 C)
+Points     : 79   span 0 .. 1.9743 A
+DMM noise  : mean sample sd 11.0 uA, worst 31.3 uA
+System temp: 43.4 .. 52.0 C (OTP trips at 60 C)
 
                                      setpoint path    readback path
                                       (DAC / ISET)    (ADC / IMEAS)
 ------------------------------------------------------------------------------
-gain error                                  0.019%           0.109%
-offset                                    -0.21 mA         -1.31 mA
-worst absolute error                      10.55 mA          1.19 mA
-rms error                                  1.21 mA          0.69 mA
-worst relative error (>0.05 A)              0.530%           1.460%
-worst non-linearity (vs best fit)         10.37 mA          0.52 mA
+gain error                                  0.012%           0.013%
+offset                                     0.09 mA         -0.15 mA
+worst absolute error                       0.79 mA          0.39 mA
+rms error                                  0.30 mA          0.12 mA
+worst relative error (>0.05 A)              0.131%           0.050%
+worst non-linearity (vs best fit)          0.51 mA          0.29 mA
 ------------------------------------------------------------------------------
 quantisation floor (1 LSB)                 0.50 mA          0.10 mA
 
@@ -30,13 +30,13 @@ Suggested 2-point calibration (values taken from this run):
   INST:NSEL 1
   CAL:STAT ON,0
   CURR 0.2000
-  CAL:POIN ISET,0,0.1999
-  CURR 1.8000
-  CAL:POIN ISET,1,1.8002
+  CAL:POIN ISET,0,0.1998
+  CURR 1.7750
+  CAL:POIN ISET,1,1.7745
   CAL:COMM ISET
-  ; IMEAS: at those points the PSU read 0.1989 A and 1.8010 A
-  CAL:POIN IMEAS,0,0.1999   ; while sitting at the low point
-  CAL:POIN IMEAS,1,1.8002   ; while sitting at the high point
+  ; IMEAS: at those points the PSU read 0.1998 A and 1.7746 A
+  CAL:POIN IMEAS,0,0.1998   ; while sitting at the low point
+  CAL:POIN IMEAS,1,1.7745   ; while sitting at the high point
   CAL:COMM IMEAS
   CAL:STAT OFF,0
 

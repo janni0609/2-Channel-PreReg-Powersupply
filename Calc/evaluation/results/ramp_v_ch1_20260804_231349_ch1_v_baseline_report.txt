@@ -1,23 +1,23 @@
 ==============================================================================
-Current accuracy report - CH2
+Voltage accuracy report - CH1
 ==============================================================================
 PSU        : PreReg,PSU-2CH-36V2A,SN00001,0.2.0
 DMM        : Siglent Technologies,SDM3065X,SDM36HCQ7R1239,3.02.01.12R1
-Points     : 81   span 0 .. 1.9509 A
-DMM noise  : mean sample sd 10.8 uA, worst 31.4 uA
-System temp: 37.6 .. 52.8 C (OTP trips at 60 C)
+Points     : 72   span 0 .. 35.991 V
+DMM noise  : mean sample sd 103.1 uV, worst 733.0 uV
+System temp: 37.5 .. 41.3 C (OTP trips at 60 C)
 
                                      setpoint path    readback path
-                                      (DAC / ISET)    (ADC / IMEAS)
+                                      (DAC / VSET)    (ADC / VMEAS)
 ------------------------------------------------------------------------------
-gain error                                  0.326%           0.174%
-offset                                    -1.61 mA         -0.08 mA
-worst absolute error                      49.18 mA          3.60 mA
-rms error                                  6.15 mA          1.95 mA
-worst relative error (>0.05 A)              2.521%           0.320%
-worst non-linearity (vs best fit)         44.45 mA          0.29 mA
+gain error                                 -0.000%           0.002%
+offset                                     7.27 mV         -0.21 mV
+worst absolute error                      16.49 mV          2.08 mV
+rms error                                  8.78 mV          0.74 mV
+worst relative error (>1 V)                 0.143%           0.033%
+worst non-linearity (vs best fit)         10.00 mV          1.64 mV
 ------------------------------------------------------------------------------
-quantisation floor (1 LSB)                 0.50 mA          0.10 mA
+quantisation floor (1 LSB)                 8.94 mV          1.80 mV
 
 Gain/offset above are of the PSU relative to the DMM: a positive gain
 error means the PSU number is larger than the truth.  The non-linearity
@@ -27,17 +27,17 @@ nothing to grip, and a *bow* between the cal points is INL, which a
 2-point linear fit cannot remove at all.
 
 Suggested 2-point calibration (values taken from this run):
-  INST:NSEL 2
+  INST:NSEL 1
   CAL:STAT ON,0
-  CURR 0.2000
-  CAL:POIN ISET,0,0.1999
-  CURR 1.7500
-  CAL:POIN ISET,1,1.7485
-  CAL:COMM ISET
-  ; IMEAS: at those points the PSU read 0.2003 A and 1.7516 A
-  CAL:POIN IMEAS,0,0.1999   ; while sitting at the low point
-  CAL:POIN IMEAS,1,1.7485   ; while sitting at the high point
-  CAL:COMM IMEAS
+  VOLT 3.500
+  CAL:POIN VSET,0,3.4958
+  VOLT 32.500
+  CAL:POIN VSET,1,32.4955
+  CAL:COMM VSET
+  ; VMEAS: at those points the PSU read 3.497 V and 32.496 V
+  CAL:POIN VMEAS,0,3.4958   ; while sitting at the low point
+  CAL:POIN VMEAS,1,32.4955   ; while sitting at the high point
+  CAL:COMM VMEAS
   CAL:STAT OFF,0
 
   (or just: --calibrate --verify, which drives and captures these live)

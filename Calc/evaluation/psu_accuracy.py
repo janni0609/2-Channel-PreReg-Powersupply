@@ -598,11 +598,19 @@ def run_calibration(psu, dmm, args) -> None:
     """Drive two points and record a live 2-point calibration.
 
     The channel firmware captures the *hardware* side of each cal point at the
-    instant CAL:POIN arrives - the DAC code being driven (VSET) or the averaged
-    raw ADC volts (VMEAS, an EWMA that needs ~1.5 s to settle). Only the
-    `<actual>` value comes from us, so every point must be measured while the
-    channel is actually sitting at that operating point. Stored values from an
-    earlier run cannot be replayed.
+    instant CAL:POIN arrives - the DAC code being driven (VSET) or an average of
+    the raw ADC volts (VMEAS/IMEAS). Only the `<actual>` value comes from us, so
+    every point must be measured while the channel is actually sitting at that
+    operating point. Stored values from an earlier run cannot be replayed.
+
+    `--cal-settle` therefore has to outlast that capture average, not just the
+    hardware. It is the whole ballgame for the measure paths: the average is
+    taken right after stepping the channel to the point, so any lag left in it
+    is recorded as the point's x and shows up directly as gain/offset error.
+    Firmware before the alpha=1/4 + snap fix in measure.cpp needed >=20 s here;
+    the 3 s that used to be the default stored a 2.2 % gain error on IMEAS while
+    reporting success. The default is now 12 s, and the residual at each cal
+    point is checked below so a bad fit can never pass silently again.
 
     The fit is absolute (x = true value, y = raw hardware quantity), so
     re-calibrating an already-calibrated channel converges instead of
@@ -629,7 +637,7 @@ def run_calibration(psu, dmm, args) -> None:
 
     for index, v_point in ((0, args.cal_low), (1, args.cal_high)):
         psu.write(f"{q.set_cmd} {v_point:.{q.dec}f},(@{ch})")
-        time.sleep(args.cal_settle)          # >= 1.5 s for the measure-path EWMA
+        time.sleep(args.cal_settle)          # must outlast the capture average
         actual, sd = read_dmm_mean(dmm, args.cal_samples)
         aux = psu.query_float(f"{q.aux_cmd} (@{ch})")
         if q.name == "voltage" and abs(aux) > args.abort_current:
@@ -652,6 +660,32 @@ def run_calibration(psu, dmm, args) -> None:
     psu.write("CAL:STAT OFF,0")
     valid = psu.query(f"CAL:VAL? (@{ch})")
     print(f"  CAL:VALid? -> {valid}")
+
+    # A 2-point fit must pass through its own two points, so the readback error
+    # back at each cal point is the one check that cannot be fooled: CAL:VALid?
+    # and an empty error queue only say the commit was not rejected, and
+    # CAL:DATA? cannot read the constants back. Anything much above the ADC
+    # quantum here means the stored line is not the line those points define.
+    if q.cal_meas in paths:
+        print("  residual at the cal points (must be ~0 for a landed fit):")
+        tol_m = 5.0 * q.meas_lsb_m
+        worst = 0.0
+        for v_point in (args.cal_low, args.cal_high):
+            psu.write(f"{q.set_cmd} {v_point:.{q.dec}f},(@{ch})")
+            time.sleep(args.cal_settle)
+            actual, _ = read_dmm_mean(dmm, args.cal_samples)
+            back = psu.query_float(f"{q.meas_cmd} (@{ch})")
+            resid_m = (back - actual) * 1000.0
+            worst = max(worst, abs(resid_m))
+            print(f"    {v_point:8.{q.dec}f} {q.unit}: readback - DMM = "
+                  f"{resid_m:+8.3f} {q.munit}"
+                  f"{'   <-- TOO LARGE' if abs(resid_m) > tol_m else ''}")
+        if worst > tol_m:
+            print(f"  !  {q.cal_meas} did not take: worst residual {worst:.3f} {q.munit} "
+                  f"exceeds {tol_m:.3f} {q.munit} ({q.meas_lsb_m:.3f} {q.munit}/LSB).")
+            print(f"  !  The usual cause is too short a --cal-settle ({args.cal_settle:g} s): "
+                  f"the firmware's capture average was still lagging the step.")
+
     psu.write(f"{q.set_cmd} 0,(@{ch})")
 
 
@@ -694,6 +728,42 @@ def fit_series(v_dmm: np.ndarray, v_dut: np.ndarray, err_mv: np.ndarray,
         cal_low=(float(v_dut[lo_i]), float(v_dmm[lo_i])),
         cal_high=(float(v_dut[hi_i]), float(v_dmm[hi_i])),
     )
+
+
+def drop_unreachable(points: list[Point], q: Quantity, clip_tol: float | None,
+                     keep: bool = False) -> tuple[list[Point], list[Point], list[Point]]:
+    """Split off the ramp endpoints the channel physically cannot reach.
+
+    Both ends of a ramp contain points that measure a limit rather than an error,
+    and each one dominates every statistic it is included in:
+
+    * **Top** - neither channel reaches its rated 2.000 A (README Known issues).
+      Above the DAC ceiling every higher setpoint returns the same current. One
+      clipped point took CH2's worst setpoint error from ~1 mA to 49 mA.
+    * **Bottom** - the 0 V / 0 A setpoint sits on the output floor, not at zero
+      (CH1 measured 31.6 mV for a 0 V request), so it reads as a large setpoint
+      error that no calibration could remove.
+
+    Returns (kept, dropped_low, dropped_high). Dropped points stay in the CSV,
+    which is the raw measurement record; only the report and plots exclude them.
+    This is the basis the README's accuracy table has always quoted -- it used to
+    have to be recomputed by hand.
+
+    Clipping is detected only as a *contiguous tail*, so a genuinely poor setpoint
+    calibration -- which would exceed the same tolerance mid-ramp -- is never
+    quietly discarded as "clipping".
+    """
+    if keep:
+        return points, [], []
+    lo = 0
+    while lo < len(points) and points[lo].v_set == 0.0:
+        lo += 1
+    tol = clip_tol if clip_tol is not None else 5.0 * q.set_lsb_m / 1000.0
+    hi = len(points)
+    if tol > 0:
+        while hi > lo and (points[hi - 1].v_set - points[hi - 1].v_dmm) > tol:
+            hi -= 1
+    return points[lo:hi], points[:lo], points[hi:]
 
 
 def analyse(points: list[Point], rel_floor: float):
@@ -821,7 +891,7 @@ def plot(points: list[Point], fits, channel: int, out_png: Path, theme: str,
 
     c = THEMES[theme]
     fit_set, fit_psu = fits
-    v_set, v_dmm, v_psu, err_set, err_psu, *_ = analyse(points, rel_floor)
+    _, v_dmm, _, err_set, err_psu, *_ = analyse(points, rel_floor)
 
     plt.rcParams.update({
         "font.family": ["Segoe UI", "DejaVu Sans", "sans-serif"],
@@ -836,10 +906,15 @@ def plot(points: list[Point], fits, channel: int, out_png: Path, theme: str,
         "axes.edgecolor": c["axis"],
     })
 
-    fig, axes = plt.subplots(3, 1, figsize=(9.0, 10.0), sharex=True,
+    # Two panels: absolute and relative deviation. The old third panel (residual
+    # after a gain/offset fit, i.e. what a 2-point calibration cannot remove) is
+    # deliberately gone -- it is analysis of the calibration scheme rather than of
+    # the instrument, and the report still carries the number as
+    # "worst non-linearity" for anyone who wants it.
+    fig, axes = plt.subplots(2, 1, figsize=(9.0, 7.2), sharex=True,
                              gridspec_kw=dict(hspace=0.16, left=0.10, right=0.965,
-                                              top=0.905, bottom=0.065))
-    ax_abs, ax_rel, ax_lin = axes
+                                              top=0.875, bottom=0.090))
+    ax_abs, ax_rel = axes
 
     for ax in axes:
         ax.grid(True, color=c["grid"], linewidth=0.8, alpha=1.0)
@@ -880,31 +955,18 @@ def plot(points: list[Point], fits, channel: int, out_png: Path, theme: str,
     ax_rel.plot(v_dmm[mask], rel_set, style, color=c["s1"], **common)
     ax_rel.plot(v_dmm[mask], rel_psu, style, color=c["s2"], **common)
     ax_rel.set_ylabel("deviation  /  % of reading")
+    ax_rel.set_xlabel(f"DMM {q.name}  /  {q.unit}")
     ax_rel.set_title(f"Relative deviation  (points above {rel_floor:g} {q.unit})", loc="left",
                      color=c["ink"], fontsize=11, fontweight="bold", pad=8)
 
-    # --- panel 3: linearity ------------------------------------------------
-    resid_set = (v_set - (fit_set.gain * v_dmm + fit_set.offset_mv / 1000.0)) * 1000.0
-    resid_psu = (v_psu - (fit_psu.gain * v_dmm + fit_psu.offset_mv / 1000.0)) * 1000.0
-    ax_lin.plot(v_dmm, resid_set, style, color=c["s1"], **common)
-    ax_lin.plot(v_dmm, resid_psu, style, color=c["s2"], **common)
-    ax_lin.set_ylabel(f"residual after gain/offset fit  /  {q.munit}")
-    ax_lin.set_xlabel(f"DMM {q.name}  /  {q.unit}")
-    ax_lin.set_title("Linearity - what a 2-point calibration cannot remove", loc="left",
-                     color=c["ink"], fontsize=11, fontweight="bold", pad=8)
-    # 1 LSB reference bands: a residual inside these is quantisation, not error.
-    for lsb, col in ((q.set_lsb_m, c["s1"]), (q.meas_lsb_m, c["s2"])):
-        ax_lin.axhspan(-lsb / 2, lsb / 2, color=col, alpha=0.07, zorder=0, linewidth=0)
-
     span = float(v_dmm.max() - v_dmm.min()) or 1.0
-    ax_lin.set_xlim(v_dmm.min() - 0.02 * span, v_dmm.max() + 0.09 * span)
+    ax_rel.set_xlim(v_dmm.min() - 0.02 * span, v_dmm.max() + 0.09 * span)
 
     fig.suptitle(f"PSU CH{channel} output-{q.name} accuracy vs SDM3065X",
-                 x=0.10, ha="left", color=c["ink"], fontsize=14, fontweight="bold", y=0.975)
-    fig.text(0.10, 0.938,
+                 x=0.10, ha="left", color=c["ink"], fontsize=14, fontweight="bold", y=0.972)
+    fig.text(0.10, 0.925,
              f"worst: setpoint {fit_set.max_abs_mv:.1f} {q.munit} / {fit_set.max_rel_pct:.2f} %"
              f"  ·  readback {fit_psu.max_abs_mv:.1f} {q.munit} / {fit_psu.max_rel_pct:.2f} %"
-             f"  ·  linearity {max(fit_set.max_resid_mv, fit_psu.max_resid_mv):.1f} {q.munit}"
              f"  ·  1 LSB = {q.set_lsb_m:.2f} / {q.meas_lsb_m:.2f} {q.munit}",
              ha="left", color=c["ink2"], fontsize=9.5)
 
@@ -954,6 +1016,13 @@ def build_parser() -> argparse.ArgumentParser:
                    help="abort above this system temperature, C (OTP trips at 60; 0 disables)")
     p.add_argument("--rel-floor", type=float,
                    help="ignore points below this in the %%-of-reading plot [V:1.0, I:0.05]")
+    p.add_argument("--clip-tol", type=float,
+                   help="setpoint-vs-DMM gap above which a trailing point counts as "
+                        "clipped and is left out of the report and plots "
+                        "[default 5 setpoint LSB]; 0 disables the clip check")
+    p.add_argument("--keep-endpoints", action="store_true",
+                   help="report every point, including the 0 V/0 A output floor and "
+                        "the clipped top of the range")
 
     p.add_argument("--calibrate", action="store_true",
                    help="run a live 2-point calibration (WRITES EEPROM, not undoable)")
@@ -961,8 +1030,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="comma-separated cal paths; default = both paths of --quantity")
     p.add_argument("--cal-low", type=float, help="low cal point [V:3.5, I:0.2]")
     p.add_argument("--cal-high", type=float, help="high cal point [V:32.5, I:1.8]")
-    p.add_argument("--cal-settle", type=float, default=3.0,
-                   help="dwell at each cal point, s (>=1.5 s for the VMEAS EWMA)")
+    p.add_argument("--cal-settle", type=float, default=12.0,
+                   help="dwell at each cal point, s (the measure-path capture "
+                        "average must fully settle - see run_calibration)")
     p.add_argument("--cal-samples", type=int, default=8, help="DMM readings per cal point")
     p.add_argument("--verify", action="store_true",
                    help="after --calibrate, run the ramp and report the result")
@@ -1000,6 +1070,20 @@ def apply_defaults(args) -> None:
 
 def render_outputs(points, channel, psu_idn, dmm_idn, args, stem: Path) -> None:
     q = QUANTITIES[args.quantity]
+    points, dropped_lo, dropped_hi = drop_unreachable(points, q, args.clip_tol,
+                                                      args.keep_endpoints)
+    if dropped_lo:
+        print(f"\n  excluded {len(dropped_lo)} point(s) at a 0 {q.unit} setpoint "
+              f"(output floor, not an accuracy error)")
+    if dropped_hi:
+        edge = min(p.v_set for p in dropped_hi)
+        print(f"  excluded {len(dropped_hi)} clipped point(s) from {edge:.{q.dec}f} {q.unit} up: "
+              f"the setpoint no longer tracks there (DAC ceiling, see Known issues)")
+    if dropped_lo or dropped_hi:
+        print("  (they remain in the CSV; --keep-endpoints reports every point)")
+    if not points:
+        raise ScpiError("no points left after endpoint exclusion - "
+                        "check the wiring, or pass --keep-endpoints")
     fits_full = analyse(points, args.rel_floor)
     fits = (fits_full[5], fits_full[6])
     report = format_report(points, fits, channel, psu_idn, dmm_idn, args.rel_floor, q)
