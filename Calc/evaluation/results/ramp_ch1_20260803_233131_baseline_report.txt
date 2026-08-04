@@ -1,0 +1,43 @@
+==============================================================================
+Voltage accuracy report - CH1
+==============================================================================
+PSU        : PreReg,PSU-2CH-36V2A,SN00001,0.2.0
+DMM        : Siglent Technologies,SDM3065X,SDM36HCQ7R1239,3.02.01.12R1
+Points     : 73   span 0 .. 35.992 V
+DMM noise  : mean sample sd 103.3 uV, worst 534.5 uV
+
+                                     setpoint path    readback path
+                                      (DAC / VSET)    (ADC / VMEAS)
+------------------------------------------------------------------------------
+gain error                                  0.008%           0.001%
+offset                                     6.28 mV         -0.24 mV
+worst absolute error                      31.97 mV          1.51 mV
+rms error                                 10.41 mV          0.71 mV
+worst relative error (>1 V)                 0.210%           0.065%
+worst non-linearity (vs best fit)         38.25 mV          1.43 mV
+------------------------------------------------------------------------------
+quantisation floor (1 LSB)                 8.94 mV          1.80 mV
+
+Gain/offset above are of the PSU relative to the DMM: a positive gain
+error means the PSU number is larger than the truth.  The non-linearity
+row is what a 2-point calibration cannot remove; compare it against the
+quantisation floor - a residual near or below 1 LSB leaves calibration
+nothing to grip, and a *bow* between the cal points is INL, which a
+2-point linear fit cannot remove at all.
+
+Suggested 2-point calibration (values taken from this run):
+  INST:NSEL 1
+  CAL:STAT ON,0
+  VOLT 3.500
+  CAL:POIN VSET,0,3.4964
+  VOLT 32.500
+  CAL:POIN VSET,1,32.4962
+  CAL:COMM VSET
+  ; VMEAS: at those points the PSU read 3.497 V and 32.497 V
+  CAL:POIN VMEAS,0,3.4964   ; while sitting at the low point
+  CAL:POIN VMEAS,1,32.4962   ; while sitting at the high point
+  CAL:COMM VMEAS
+  CAL:STAT OFF,0
+
+  (or just: --calibrate --verify, which drives and captures these live)
+==============================================================================

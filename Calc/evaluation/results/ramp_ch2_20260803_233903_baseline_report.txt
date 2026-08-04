@@ -1,0 +1,38 @@
+==============================================================================
+Voltage accuracy report - CH2
+==============================================================================
+PSU        : PreReg,PSU-2CH-36V2A,SN00001,0.2.0
+DMM        : Siglent Technologies,SDM3065X,SDM36HCQ7R1239,3.02.01.12R1
+Points     : 73   span 0 .. 35.988 V
+DMM noise  : mean sample sd 115.6 uV, worst 487.4 uV
+
+                                     setpoint path    readback path
+                                      (DAC / VSET)    (ADC / VMEAS)
+------------------------------------------------------------------------------
+gain error                                  0.009%          -0.002%
+offset                                     1.35 mV         -1.19 mV
+worst absolute error                      19.85 mV          3.78 mV
+rms error                                  5.44 mV          1.69 mV
+worst relative error (>1 V)                 0.348%           0.082%
+worst non-linearity (vs best fit)         21.20 mV          2.23 mV
+------------------------------------------------------------------------------
+
+Gain/offset above are of the PSU relative to the DMM: a positive gain
+error means the PSU number is larger than the truth.  The non-linearity
+row is what a 2-point calibration cannot remove - compare it against the
+~+-0.05% floor predicted in Calc/DAC_ADC/DAC_ADC_Accuracy_Analysis.md.
+
+Suggested 2-point calibration (values taken from this run):
+  INST:NSEL 2
+  CAL:STAT ON,0
+  VOLT 3.500
+  CAL:POIN VSET,0,3.5037
+  VOLT 32.500
+  CAL:POIN VSET,1,32.4971
+  CAL:COMM VSET
+  ; VMEAS: at those points the PSU read 3.503 V and 32.495 V
+  CAL:POIN VMEAS,0,3.5037   ; while sitting at the low point
+  CAL:POIN VMEAS,1,32.4971   ; while sitting at the high point
+  CAL:COMM VMEAS
+  CAL:STAT OFF,0
+==============================================================================

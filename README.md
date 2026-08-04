@@ -30,7 +30,7 @@ footprint error, see [Known issues](#known-issues).
 | Output current | 0 … 2 A per channel (setpoint = current limit, CV/CC) |
 | Setpoint resolution | 12-bit DAC ≈ 8.6 mV / 0.49 mA; front panel edits in 10 mV / 1 mA steps |
 | Measurement resolution | 16-bit ADC, ~1.9 mV / ~0.1 mA; displayed as 3 decimals (V) and 4 decimals (A) |
-| Accuracy | ±3–4 % uncalibrated (DAC band gap dominates); **~±0.05 % V / ±0.1–0.2 % I after 2-point calibration** |
+| Accuracy | ±3–4 % uncalibrated (DAC band gap dominates). **Measured after calibration, worst of both channels: setpoint ±17 mV / ±1.3 mA, readback ±2.8 mV / ±3.7 mA** — see [Measured accuracy](#measured-accuracy) |
 | Protection | Per-channel over-temperature (settable, default 60 °C), system OTP on the heatsink, comms-loss shutdown, input fuses + TVS |
 | Regulation | Analog CV and CC loops per channel; MCU sets the references, does not close the loop. CC is indicated by a panel LED driven straight from the loop |
 | Display | 256×64 SSD1322 OLED |
@@ -267,6 +267,79 @@ where each term comes from:
 
 ---
 
+## Measured accuracy
+
+Both channels were measured against a **Siglent SDM3065X** 6½-digit DMM on
+2026-08-03/04, using [`Calc/evaluation/psu_accuracy.py`](Calc/evaluation/) — a
+ramp of the full range in fine steps, comparing three numbers at every step:
+
+| | source | exercises |
+| --- | --- | --- |
+| setpoint | what was written with `VOLT` / `CURR` | DAC → `VSET`/`ISET` chain |
+| readback | `MEAS:VOLT?` / `MEAS:CURR?` | sense amp → ADC → `VMEAS`/`IMEAS` chain |
+| truth | SDM3065X | — |
+
+Voltage: 0 → 36 V in 500 mV steps, open circuit. Current: 0 → 2 A in 25 mA steps
+into the DMM's own current input as the load, 2 V compliance. Figures are for the
+instrument **as it stands today**, i.e. calibrated, and exclude the 0 V / 0 A
+point (output floor, not an accuracy error) and the clipped top of the current
+range (see [Known issues](#known-issues)).
+
+### Results
+
+| | CH1 setpoint | CH1 readback | CH2 setpoint | CH2 readback |
+| --- | --- | --- | --- | --- |
+| **Voltage** rms | 8.8 mV | **0.71 mV** | 5.1 mV | 1.4 mV |
+| worst | 16.6 mV | 1.6 mV | 11.6 mV | 2.8 mV |
+| gain error | −0.0009 % | +0.0018 % | −0.0024 % | −0.0003 % |
+| **Current** rms | **0.29 mA** | 0.68 mA | **0.47 mA** | 2.0 mA |
+| worst | 0.64 mA | 1.19 mA | 1.25 mA | 3.7 mA |
+| gain error | −0.023 % | +0.110 % | +0.029 % | +0.176 % |
+
+In short, worst of both channels: **voltage setpoint ±17 mV (≈0.05 % FS), voltage
+readback ±2.8 mV, current setpoint ±1.3 mA (≈0.06 % FS), current readback
+±3.7 mA**. Every voltage gain error
+is inside ±0.003 %, so the calibration is doing its job there. The two current
+readback gain errors (~0.1–0.18 %) are the exception, and are a firmware bug
+rather than a hardware limit — see [Known issues](#known-issues).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Calc/evaluation/results/ramp_ch1_20260803_235907_postcal_dark.png">
+  <img alt="CH1 output-voltage accuracy against the SDM3065X: absolute deviation, relative deviation, and linearity" src="Calc/evaluation/results/ramp_ch1_20260803_235907_postcal_light.png">
+</picture>
+
+The voltage setpoint trace is the interesting one. Its error is **not**
+calibration error — it is the 12-bit DAC. The sawtooth is the ±½ LSB rounding of
+a requested millivolt onto the ~8.9 mV code grid, and the slow envelope on top is
+the DAC's own INL (specified ±2 LSB). A 2-point calibration pins the two
+endpoints and cannot bend to follow a bow between them, which is why
+re-calibrating an already-calibrated channel here changes nothing. The readback
+trace sits flat at the ADC's ~1.8 mV quantum. **This is the hardware floor, not a
+tuning problem** — improving it needs an external DAC reference (the `Vref` pin is
+not routed) or more DAC bits.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Calc/evaluation/results/ramp_i_ch1_20260804_143727_postcal_dark.png">
+  <img alt="CH1 output-current accuracy against the SDM3065X after calibration" src="Calc/evaluation/results/ramp_i_ch1_20260804_143727_postcal_light.png">
+</picture>
+
+Current is the opposite case, and shows what calibration *can* do. Before
+calibration CH1's setpoint error was a clean tilt — gain +0.176 %, running from
+−1.2 mA at 100 mA to +1.8 mA at 2 A. A 2-point fit removes a tilt exactly, and
+did: gain −0.023 %, rms 0.89 → 0.29 mA, flat to within ±0.3 mA across the whole
+range. CH2 behaved the same way (rms 0.92 → 0.47 mA). The upward hook at the very
+top of the plot is the ISET DAC clipping, not an accuracy error.
+
+**Rule of thumb from this:** look at the linearity panel before calibrating. A
+*tilt* or an offset is gain/offset error and calibration will remove it. A *bow*
+is INL and it will not.
+
+All raw data, per-run reports and both channels' plots are in
+[`Calc/evaluation/results/`](Calc/evaluation/results/); the harness, wiring and
+options are documented in [`Calc/evaluation/README.md`](Calc/evaluation/README.md).
+
+---
+
 ## Power input
 
 The supply is fed from three off-the-shelf Mean Well modules:
@@ -302,6 +375,7 @@ Calc/
   Stability/       V and I loop compensation — notebooks + typeset report
   DCDC Calc/       LMR51606 40 V → 4.5 V aux buck design
   DAC_ADC/         Setpoint/measurement error budget
+  evaluation/      Bench accuracy measurement vs a reference DMM (+ raw results)
 ```
 
 ---
@@ -330,6 +404,20 @@ Calc/
   cannot describe all of them — autoscaling made readings drift away from the
   calibration points. Re-enabling it requires per-range calibration
   (`ADC_PGA_*_INDEX` in `firmware/channel/include/config.h`).
+- **Neither channel reaches its rated 2.000 A.** The ISET DAC clips at ~1.99 A on
+  CH1 and ~1.95 A on CH2 (both setpoints above the ceiling return the identical
+  current, and the readback agrees). Full scale is 2.44 V ÷ 1.225 V/A = 1.99 A,
+  but `DEFAULT_I_DIV` in `calibration.cpp` assumes 1.2 → 2.033 A and
+  `SETPOINT_I_MAX_MA` is 2000; the channel spread on top is band-gap and shunt
+  tolerance. The top ~1–2 % of the current range is not reachable.
+- **Calibrating the measure paths (`VMEAS`/`IMEAS`) appears to have no effect**,
+  while the set paths (`VSET`/`ISET`) demonstrably work. Measured on both
+  channels: `CAL:COMM IMEAS` leaves the gain error unchanged (CH2: 0.173 % →
+  0.176 %), and the readback error *at the cal point itself* does not move
+  (+0.39 → +0.42 mA) — but a 2-point fit must pass through its own points. Both
+  channels' `IMEAS` therefore still carry a real ~0.17 % gain error that
+  calibration ought to remove. Not the PGA (it is pinned, see above); suspect the
+  x-value captured for measure paths in `comms.cpp` `CMD_CAL_POINT`.
 - `CALibration:DATA?` returns NaN over SCPI: gain/offset cannot currently be read
   back across the channel link.
 - The hostname set in *Settings → Network* is stored and displayed, but the stock

@@ -1,0 +1,44 @@
+==============================================================================
+Current accuracy report - CH1
+==============================================================================
+PSU        : PreReg,PSU-2CH-36V2A,SN00001,0.2.0
+DMM        : Siglent Technologies,SDM3065X,SDM36HCQ7R1239,3.02.01.12R1
+Points     : 81   span 0 .. 1.9894 A
+DMM noise  : mean sample sd 10.6 uA, worst 36.3 uA
+System temp: 31.0 .. 46.7 C (OTP trips at 60 C)
+
+                                     setpoint path    readback path
+                                      (DAC / ISET)    (ADC / IMEAS)
+------------------------------------------------------------------------------
+gain error                                  0.019%           0.109%
+offset                                    -0.21 mA         -1.31 mA
+worst absolute error                      10.55 mA          1.19 mA
+rms error                                  1.21 mA          0.69 mA
+worst relative error (>0.05 A)              0.530%           1.460%
+worst non-linearity (vs best fit)         10.37 mA          0.52 mA
+------------------------------------------------------------------------------
+quantisation floor (1 LSB)                 0.50 mA          0.10 mA
+
+Gain/offset above are of the PSU relative to the DMM: a positive gain
+error means the PSU number is larger than the truth.  The non-linearity
+row is what a 2-point calibration cannot remove; compare it against the
+quantisation floor - a residual near or below 1 LSB leaves calibration
+nothing to grip, and a *bow* between the cal points is INL, which a
+2-point linear fit cannot remove at all.
+
+Suggested 2-point calibration (values taken from this run):
+  INST:NSEL 1
+  CAL:STAT ON,0
+  CURR 0.2000
+  CAL:POIN ISET,0,0.1999
+  CURR 1.8000
+  CAL:POIN ISET,1,1.8002
+  CAL:COMM ISET
+  ; IMEAS: at those points the PSU read 0.1989 A and 1.8010 A
+  CAL:POIN IMEAS,0,0.1999   ; while sitting at the low point
+  CAL:POIN IMEAS,1,1.8002   ; while sitting at the high point
+  CAL:COMM IMEAS
+  CAL:STAT OFF,0
+
+  (or just: --calibrate --verify, which drives and captures these live)
+==============================================================================

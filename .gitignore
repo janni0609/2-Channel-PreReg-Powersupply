@@ -28,6 +28,13 @@ fp-info-cache
 .history/
 .history_trim/
 
+# Python (analysis notebooks, Calc/evaluation harness)
+__pycache__/
+*.pyc
+
+# Network stress-harness run logs (diagnostics, not design data)
+Calc/evaluation/results/netstress-*.json
+
 # OS junk
 Thumbs.db
 desktop.ini
