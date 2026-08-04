@@ -18,11 +18,27 @@ static float      s_vadc[2];       /* last input voltage per channel */
 
 /* Averaged raw ADC input voltage per channel: the x-sample recorded when a
  * measure path is calibrated (CMD_CAL_POINT). An exponential moving average
- * (alpha = 1/16, noise-equivalent to a ~31-sample window) stands in for a
- * second ring pair, which would cost another 260 bytes of the tiny's RAM for
- * a value only read during calibration. At the ~18 ms per-channel sample
- * period it settles in ~1.5 s after a step; the Brain's cal wizard gates the
- * capture behind a settle delay, so the average is warm when a point lands. */
+ * stands in for a second ring pair, which would cost another 260 bytes of the
+ * tiny's RAM for a value only read during calibration.
+ *
+ * The averaging is deliberately fast. An EWMA's residual after a step is
+ * (1-alpha)^n, so alpha sets the settling time and not just the noise floor --
+ * and a cal point is *always* taken just after stepping the channel to it, so
+ * whatever lag is left goes straight into the fitted line. At the original
+ * alpha = 1/16 the average was still ~2 % away from the new operating point
+ * several seconds later: measured on CH2, the x recorded at 0.2 A came out
+ * 20 mV high and the one at 1.8 A 22 mV low (each pulled back toward the other
+ * point), storing a 2.2 % gain error while the identical calibration run with a
+ * 25 s settle landed within 0.003 %.
+ *
+ * alpha = 1/4 decays a step to <1e-4 in 32 samples (~1 s) and still averages a
+ * noise-equivalent ~7 samples, well below the ~0.1 mA ADC quantum this
+ * calibration resolves. CAL_AVG_SNAP_V additionally slams the average onto any
+ * sample that is nowhere near it, so a setpoint step costs no settling at all;
+ * at ~400 LSB it is far above sample noise and output ripple, and alpha then
+ * clears the sub-threshold remainder within the same ~1 s. */
+#define CAL_AVG_ALPHA     (1.0f / 4.0f)
+#define CAL_AVG_SNAP_V    0.050f
 static float      s_vadc_avg[2];
 static bool       s_vadc_avg_seeded[2];
 
@@ -96,12 +112,14 @@ static void process(AdsChannel ch, int16_t code)
     s_vadc[ch] = volts;
 
     /* Keep the calibration-capture average warm (seed on the first sample so
-     * boot doesn't start the average from an artificial zero). */
-    if (!s_vadc_avg_seeded[ch]) {
+     * boot doesn't start the average from an artificial zero, and re-seed on a
+     * step so it never lags a setpoint change into a cal point). */
+    const float davg = volts - s_vadc_avg[ch];
+    if (!s_vadc_avg_seeded[ch] || fabsf(davg) > CAL_AVG_SNAP_V) {
         s_vadc_avg[ch] = volts;
         s_vadc_avg_seeded[ch] = true;
     } else {
-        s_vadc_avg[ch] += (volts - s_vadc_avg[ch]) * (1.0f / 16.0f);
+        s_vadc_avg[ch] += davg * CAL_AVG_ALPHA;
     }
 
     if (ch == ADS_CH_V) {
